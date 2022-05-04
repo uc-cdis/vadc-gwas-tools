@@ -7,7 +7,7 @@ import sys
 from signal import SIG_DFL, SIGPIPE, signal
 
 from vadc_gwas_tools.common.logger import Logger
-from vadc_gwas_tools.subcommands import SplitFilenameByChr
+from vadc_gwas_tools.subcommands import FilterSegments, SplitFilenameByChr
 
 signal(SIGPIPE, SIG_DFL)
 
@@ -35,6 +35,7 @@ def main(args=None, extra_subparser=None) -> None:
 
     # Subcommands
     SplitFilenameByChr.add(subparsers=subparsers)
+    FilterSegments.add(subparsers=subparsers)
 
     if extra_subparser:
         extra_subparser.add(subparsers=subparsers)
