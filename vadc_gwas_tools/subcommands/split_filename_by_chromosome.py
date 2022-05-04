@@ -44,11 +44,15 @@ class SplitFilenameByChr(Subcommand):
         logger.info("Processing gds file {}...".format(options.gds_file))
 
         bname = os.path.basename(options.gds_file)
+
         if "chr" not in bname:
             raise AssertionError("The filename must contain 'chr': {}".format(bname))
 
-        if "." not in bname:
-            raise AssertionError("The filename must contain '.': {}".format(bname))
+        split_ext_res = os.path.splitext(bname)
+        if not split_ext_res[1] or "." not in split_ext_res[0]:
+            raise AssertionError(
+                "The filename must contain '.' before extension: {}".format(bname)
+            )
 
         pfx = bname.split("chr")[0] + "chr"
         sfx = "." + ".".join(bname.split("chr")[1].split(".")[1:])
