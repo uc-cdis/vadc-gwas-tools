@@ -6,7 +6,7 @@ import datetime
 import sys
 from signal import SIG_DFL, SIGPIPE, signal
 
-from vadc_gwas_tools.logger import Logger
+from vadc_gwas_tools.common.logger import Logger
 
 signal(SIGPIPE, SIG_DFL)
 
