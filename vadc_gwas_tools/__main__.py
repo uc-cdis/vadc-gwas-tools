@@ -6,7 +6,8 @@ import datetime
 import sys
 from signal import SIG_DFL, SIGPIPE, signal
 
-from vadc_gwas_tools.logger import Logger
+from vadc_gwas_tools.common.logger import Logger
+from vadc_gwas_tools.subcommands import SplitFilenameByChr
 
 signal(SIGPIPE, SIG_DFL)
 
@@ -31,6 +32,9 @@ def main(args=None, extra_subparser=None) -> None:
     p = argparse.ArgumentParser("VADC GWAS Tools")
     subparsers = p.add_subparsers(dest="subcommand")
     subparsers.required = True
+
+    # Subcommands
+    SplitFilenameByChr.add(subparsers=subparsers)
 
     if extra_subparser:
         extra_subparser.add(subparsers=subparsers)
