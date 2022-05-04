@@ -4,7 +4,7 @@ import sys
 from contextlib import contextmanager
 from io import StringIO
 
-from vadc_gwas_tools.logger import Logger
+from vadc_gwas_tools.common.logger import Logger
 
 
 @contextmanager
