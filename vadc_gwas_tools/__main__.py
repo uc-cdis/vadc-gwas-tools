@@ -11,7 +11,7 @@ from vadc_gwas_tools.logger import Logger
 signal(SIGPIPE, SIG_DFL)
 
 
-def main(args=None):
+def main(args=None, extra_subparser=None) -> None:
     """
     The main method for vadc-gwas-tools.
     """
@@ -32,11 +32,13 @@ def main(args=None):
     subparsers = p.add_subparsers(dest="subcommand")
     subparsers.required = True
 
+    if extra_subparser:
+        extra_subparser.add(subparsers=subparsers)
+
     options = p.parse_args(args)
 
     # Run
     cls = options.func(options)
-    cls.do_work()
 
     # Finish
     logger.info("Finished!")
