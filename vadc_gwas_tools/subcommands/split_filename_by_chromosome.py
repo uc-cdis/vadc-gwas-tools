@@ -9,7 +9,6 @@ import json
 import os
 import sys
 from argparse import ArgumentParser, Namespace
-from typing import TextIO
 
 from vadc_gwas_tools.common.logger import Logger
 from vadc_gwas_tools.subcommands import Subcommand
