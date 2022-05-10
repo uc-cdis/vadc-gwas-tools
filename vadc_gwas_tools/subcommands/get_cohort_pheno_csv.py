@@ -66,8 +66,6 @@ class GetCohortPheno(Subcommand):
         logger.info(cls.__get_description__())
 
         is_case_control = False
-        all_concepts = []
-        outcome_concept = None
 
         if options.control_cohort_id is not None:
             assert (
