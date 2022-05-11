@@ -87,6 +87,7 @@ class GetCohortPheno(Subcommand):
 
         if is_case_control:
             cls._process_case_control(
+                client,
                 options.source_id,
                 options.case_cohort_id,
                 options.control_cohort_id,
@@ -96,6 +97,7 @@ class GetCohortPheno(Subcommand):
             )
         else:
             cls._process_continuous(
+                client,
                 options.source_id,
                 options.case_cohort_id,
                 options.prefixed_concept_ids,
