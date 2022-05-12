@@ -1,6 +1,7 @@
 """Small class for interacting with the workspace token service to get a refresh token.
 This tool works only for internal URLs.
 """
+import gzip
 import json
 import os
 from typing import Dict, List, Union
@@ -35,7 +36,8 @@ class CohortServiceClient:
     ) -> None:
         """
         Hits the cohort middleware /cohort-data endpoint to get the CSV.
-        Takes the prefixed concept ids (ID_...).
+        Takes the prefixed concept ids (ID_...). If the local_path ends with '.gz'
+        the file will be gzipped.
         """
         self.logger.info(f"Source - {source_id}; Cohort - {cohort_definition_id}")
         self.logger.info(f"Prefixed Concept IDs - {prefixed_concept_ids}")
@@ -48,7 +50,8 @@ class CohortServiceClient:
         )
         req.raise_for_status()
         self.logger.info(f"Writing output to {local_path}...")
-        with open(local_path, "wb") as o:
+        open_func = gzip.open if local_path.endswith('.gz') else open
+        with open_func(local_path, "wb") as o:
             for chunk in req.iter_content(chunk_size=128):
                 o.write(chunk)
 

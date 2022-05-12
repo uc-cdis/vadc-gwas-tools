@@ -5,6 +5,7 @@ type cohorts and does some basic validation.
 @author: Kyle Hernandez <kmhernan@uchicago.edu>
 """
 import csv
+import gzip
 import json
 import os
 import tempfile
@@ -54,7 +55,7 @@ class GetCohortPheno(Subcommand):
             "--output",
             required=True,
             type=str,
-            help="Path to write out the final phenotype CSV.",
+            help="Path to write out the final phenotype CSV. If ends with '.gz' the file will be gzipped.",
         )
 
     @classmethod
@@ -151,7 +152,8 @@ class GetCohortPheno(Subcommand):
 
         # Process and validate
         seen_ids = set()
-        with open(output_path, "wt") as o:
+        open_func = gzip.open if output_path.endswith('.gz') else open
+        with open_func(output_path, "wt") as o:
             with open(tmp_case_path, "rt") as fh:
                 reader = csv.DictReader(fh)
 
