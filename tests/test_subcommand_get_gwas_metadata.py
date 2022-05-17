@@ -215,15 +215,15 @@ class TestGetGwasMetadataSubcommand(unittest.TestCase):
             ) as mock_client:
                 instance = mock_client.return_value
                 instance.get_cohort_definition.return_value = case_cohort_def
-                instance.get_concept_description.return_value = concept_defs
+                instance.get_concept_descriptions.return_value = concept_defs
 
                 MOD._format_metadata = mock.MagicMock(return_value=expected)
                 MOD.main(args)
                 instance.get_cohort_definition.assert_called_once()
                 instance.get_cohort_definition.assert_called_with(args.case_cohort_id)
 
-                instance.get_concept_description.assert_called_once()
-                instance.get_concept_description.assert_called_with(
+                instance.get_concept_descriptions.assert_called_once()
+                instance.get_concept_descriptions.assert_called_with(
                     args.source_id, args.prefixed_concept_ids
                 )
 
@@ -291,7 +291,7 @@ class TestGetGwasMetadataSubcommand(unittest.TestCase):
                     case_cohort_def,
                     control_cohort_def,
                 ]
-                instance.get_concept_description.return_value = concept_defs
+                instance.get_concept_descriptions.return_value = concept_defs
 
                 MOD._format_metadata = mock.MagicMock(return_value=expected)
                 MOD.main(args)
@@ -301,8 +301,8 @@ class TestGetGwasMetadataSubcommand(unittest.TestCase):
                     [mock.call(args.case_cohort_id), mock.call(args.control_cohort_id)]
                 )
 
-                instance.get_concept_description.assert_called_once()
-                instance.get_concept_description.assert_called_with(
+                instance.get_concept_descriptions.assert_called_once()
+                instance.get_concept_descriptions.assert_called_with(
                     args.source_id, args.prefixed_concept_ids
                 )
 

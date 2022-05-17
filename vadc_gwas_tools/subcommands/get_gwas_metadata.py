@@ -138,7 +138,7 @@ class GetGwasMetadata(Subcommand):
         )
 
         # Get variable data
-        concept_data = client.get_concept_description(
+        concept_data = client.get_concept_descriptions(
             options.source_id, pfx_concept_ids
         )
 
