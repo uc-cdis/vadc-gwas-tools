@@ -4,7 +4,8 @@ This tool works only for internal URLs.
 import gzip
 import json
 import os
-from typing import Dict, List, NamedTuple, Union
+from dataclasses import dataclass
+from typing import Dict, List, Union
 
 import requests
 
@@ -13,13 +14,15 @@ from vadc_gwas_tools.common.logger import Logger
 from vadc_gwas_tools.common.wts import WorkspaceTokenServiceClient
 
 
-class CohortDefinitionResponse(NamedTuple):
+@dataclass
+class CohortDefinitionResponse:
     cohort_definition_id: int
     cohort_name: str
     cohort_description: str
 
 
-class ConceptDescriptionResponse(NamedTuple):
+@dataclass
+class ConceptDescriptionResponse:
     concept_id: int
     prefixed_concept_id: str
     concept_name: str
