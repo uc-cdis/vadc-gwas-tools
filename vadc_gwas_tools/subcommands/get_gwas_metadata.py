@@ -4,14 +4,11 @@ workflow parameters.
 
 @author: Kyle Hernandez <kmhernan@uchicago.edu>
 """
-import csv
 import dataclasses
-import gzip
-import json
-import os
-import tempfile
 from argparse import ArgumentParser, Namespace
 from typing import Any, Dict, List, Optional, Union
+
+import yaml
 
 from vadc_gwas_tools.common.cohort_middleware import (
     CohortDefinitionResponse,
@@ -146,13 +143,17 @@ class GetGwasMetadata(Subcommand):
         )
 
         # Format all metadata
-        # fomatted_metadata = cls._format_metadata(
-        #    case_cohort_def,
-        #    control_cohort_def,
-        #    concept_data,
-        #    options.prefixed_outcome_concept_id,
-        #    options
-        # )
+        formatted_metadata = cls._format_metadata(
+            case_cohort_def,
+            control_cohort_def,
+            concept_data,
+            options.prefixed_outcome_concept_id,
+            options,
+        )
+
+        # Export metadata
+        with open(options.output, 'w') as o:
+            yaml.dump(formatted_metadata, o, default_flow_style=False)
 
     @classmethod
     def _get_concept_list(
