@@ -10,6 +10,7 @@ from vadc_gwas_tools.common.logger import Logger
 from vadc_gwas_tools.subcommands import (
     FilterSegments,
     GetCohortPheno,
+    GetGwasMetadata,
     SplitFilenameByChr,
 )
 
@@ -41,6 +42,7 @@ def main(args=None, extra_subparser=None) -> None:
     SplitFilenameByChr.add(subparsers=subparsers)
     FilterSegments.add(subparsers=subparsers)
     GetCohortPheno.add(subparsers=subparsers)
+    GetGwasMetadata.add(subparsers=subparsers)
 
     if extra_subparser:
         extra_subparser.add(subparsers=subparsers)

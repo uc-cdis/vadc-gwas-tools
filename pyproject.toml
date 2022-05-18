@@ -17,8 +17,10 @@ packages = [
 vadc-gwas-tools = 'vadc_gwas_tools.__main__:main'
 
 [tool.poetry.dependencies]
-python = ">=3.7"
+python = "^3.7"
 requests = "^2.27.1"
+PyYAML = "^6.0"
+urllib3 = "1.26.9"
 
 [tool.poetry.dev-dependencies]
 
