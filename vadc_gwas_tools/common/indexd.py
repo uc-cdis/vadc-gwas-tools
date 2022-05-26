@@ -2,7 +2,7 @@
 record.  This tool works only for internal URLs.
 """
 import os
-from typing import Tulpe
+from typing import Dict, List
 
 import requests
 
@@ -25,7 +25,7 @@ class IndexdServiceClient:
         hdr = {"Content-Type": "application/json"}
         return hdr
 
-    def get_auth(self) -> Tulpe(str, str):
+    def get_auth(self) -> List[str]:
         "Get indexd authentication"
         indexd_user = os.environ.get(INDEXD_USER, "")
         indexd_password = os.environ.get(INDEXD_PASSWORD, "")
