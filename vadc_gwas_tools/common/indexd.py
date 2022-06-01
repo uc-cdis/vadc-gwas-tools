@@ -20,11 +20,6 @@ class IndexdServiceClient:
         self.service_url = f"http://indexd-service.{self.gen3_environment}"
         self.logger = Logger.get_logger("IndexdServiceClient")
 
-    def get_header(self) -> Dict[str, str]:
-        "FIXME: not needed)"
-        hdr = {"Content-Type": "application/json"}
-        return hdr
-
     def get_auth(self) -> List[str]:
         "Get indexd authentication"
         indexd_user = os.environ.get(INDEXD_USER, "")
@@ -42,8 +37,10 @@ class IndexdServiceClient:
         """
 
         self.logger.info(f"Metadata - {metadata}")
-        response = _di.post(f"{self.service_url}/index", json=metadata, auth=get_auth())
+        response = _di.post(
+            f"{self.service_url}/index", json=metadata, auth=self.get_auth()
+        )
         response.raise_for_status()
         guid = response.json()["did"]
-        self.logger.info(f"Created GUID {guid}")
-        return guid
+        self.logger.info(f"Created GUID: {guid}")
+        return response.json()

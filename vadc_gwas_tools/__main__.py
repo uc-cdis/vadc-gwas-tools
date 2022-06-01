@@ -8,6 +8,7 @@ from signal import SIG_DFL, SIGPIPE, signal
 
 from vadc_gwas_tools.common.logger import Logger
 from vadc_gwas_tools.subcommands import (
+    CreateIndexdRecord,
     FilterSegments,
     GetCohortPheno,
     GetGwasMetadata,
@@ -39,10 +40,11 @@ def main(args=None, extra_subparser=None) -> None:
     subparsers.required = True
 
     # Subcommands
-    SplitFilenameByChr.add(subparsers=subparsers)
+    CreateIndexdRecord.add(subparsers=subparsers)
     FilterSegments.add(subparsers=subparsers)
     GetCohortPheno.add(subparsers=subparsers)
     GetGwasMetadata.add(subparsers=subparsers)
+    SplitFilenameByChr.add(subparsers=subparsers)
 
     if extra_subparser:
         extra_subparser.add(subparsers=subparsers)
