@@ -101,6 +101,5 @@ class CreateIndexdRecord(Subcommand):
             "form": "object",
         }
         logger.info(f"Indexd record: \n{metadata}")
-        record_json = {}
-        # record_json = client.create_indexd_record(metadata=metadata)
+        record_json = client.create_indexd_record(metadata=metadata)
         return record_json
