@@ -23,6 +23,7 @@ class IndexdServiceClient:
     def get_auth(self) -> List[str]:
         "Get indexd authentication"
         indexd_user = os.environ.get(INDEXD_USER, "")
+        self.logger.info(f"Indexd user {indexd_user}")
         indexd_password = os.environ.get(INDEXD_PASSWORD, "")
         auth = (indexd_user, indexd_password)
         return auth
