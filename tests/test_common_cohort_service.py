@@ -240,3 +240,55 @@ class TestCohortServiceClient(unittest.TestCase):
                 "Authorization": "Bearer abc",
             },
         )
+
+    def test_get_attrition_breakdown_csv(self):
+        if GEN3_ENVIRONMENT_KEY in os.environ:
+            del os.environ[GEN3_ENVIRONMENT_KEY]
+
+        fake_items = [
+            b"Cohort,Size,AFR,ASN,EUR,HIS,NA\n",
+            b"cases,55,5,16,12,11,11\n",
+            b"Age group [MVP Demographics],18,1,3,4,5,5\n",
+        ]
+        mock_proc = mock.create_autospec(requests.Response)
+        mock_proc.raise_for_status.return_value = None
+        mock_proc.iter_content.return_value = self._return_generator(fake_items)
+        self.mocks.requests.post.return_value = mock_proc
+
+        obj = MOD()
+        obj.get_header = mock.MagicMock(
+            return_value={
+                "Content-Type": "application/json",
+                "Authorization": "Bearer abc",
+            }
+        )
+
+        (fd1, fpath1) = tempfile.mkstemp()
+        try:
+            obj.get_attrition_breakdown_csv(
+                1, 2, fpath1, ["ID_2001", "ID_2002"], "ID_6000", _di=self.mocks.requests
+            )
+            self.mocks.requests.post.assert_called_with(
+                "http://cohort-middleware-service.default/concept-stats/by-source-id/1/by-cohort-definition-id/2/breakdown-by-concept-id/6000/csv",
+                data=json.dumps({"ConceptIds": [2001, 2002]}),
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer abc",
+                },
+                stream=True,
+            )
+
+            with self.assertRaises(OSError) as _:
+                with gzip.open(fpath1, "rt") as fh:
+                    for line in fh:
+                        pass
+
+            with open(fpath1, "rt") as fh:
+                for n, item in enumerate(fake_items):
+                    line = fh.readline().rstrip("\r\n").split(",")
+                    self.assertEqual(
+                        line, fake_items[n].decode('utf8').strip("\r\n").split(",")
+                    )
+
+        finally:
+            cleanup_files(fpath1)
