@@ -23,7 +23,6 @@ class IndexdServiceClient:
     def get_auth(self) -> List[str]:
         "Get indexd authentication"
         indexd_user = os.environ.get(INDEXD_USER, "")
-        self.logger.info(f"Indexd user {indexd_user}")
         indexd_password = os.environ.get(INDEXD_PASSWORD, "")
         auth = (indexd_user, indexd_password)
         return auth
@@ -31,17 +30,17 @@ class IndexdServiceClient:
     def create_indexd_record(self, metadata="", _di=requests):
         """
         Creates indexd record from the metadata provided.
-        Metadata should be be valid JSON.  More information on indexd metadata
+        Metadata should be a valid JSON. More information on indexd metadata
         can be found:
             https://github.com/uc-cdis/indexd#indexd-records
-        Returns Globally Unique Identifier (GUID) assigned to the record.
+        Returns JSON with assigned Globally Unique Identifier (GUID) in the
+        'did' field.
         """
 
-        self.logger.info(f"Metadata - {metadata}")
         response = _di.post(
             f"{self.service_url}/index", json=metadata, auth=self.get_auth()
         )
         response.raise_for_status()
         guid = response.json()["did"]
-        self.logger.info(f"Created GUID: {guid}")
+        self.logger.info(f"Assigned GUID (did) for Indexd record: {guid}")
         return response.json()

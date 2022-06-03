@@ -4,6 +4,7 @@
 """
 
 import hashlib
+import json
 import os
 from argparse import ArgumentParser, Namespace
 
@@ -55,17 +56,19 @@ class CreateIndexdRecord(Subcommand):
         Description of tool.
         """
         return (
-            "Takes GWAS archive, calculates hash and size, and Genereates "
-            "Indexd Record with hash, size, provided arborist authorization "
-            "and provided S3 destination.  Returns JSON response containing "
-            "Indexd record information and Globally Unique Indentifier (GUID). "
+            "Takes GWAS archive, calculates hash and size, and genereates "
+            "Indexd record with hash, size, provided arborist authorization, "
+            "and provided S3 destination. Returns JSON response containing "
+            "assigned Globally Unique Indentifier (GUID) in the 'did' field. "
             "Set the INDEXD_USER, INDEXD_PASSWORD variables for accessing "
             "Indexd endpoint"
         )
 
     @classmethod
     def _get_md5_sum(cls, fil):
-        """Helper to calculate hash for the provided file"""
+        """
+        Helper to calculate hash for the provided file
+        """
         md5 = hashlib.md5()
         with open(fil, 'rb') as fh:
             while True:
@@ -100,6 +103,11 @@ class CreateIndexdRecord(Subcommand):
             "urls_metadata": {options.s3_uri: {}},
             "form": "object",
         }
-        logger.info(f"Indexd record: \n{metadata}")
+        logger.info(f"Indexd record data: \n{metadata}")
+        logger.info(f"Creating Indexd record...:")
         record_json = client.create_indexd_record(metadata=metadata)
-        return record_json
+        logger.info(f"Indexd record created.")
+
+        with open(options.output, 'w', encoding='utf-8') as o:
+            json.dump(record_json, o, ensure_ascii=False, indent=4)
+        logger.info(f"JSON response saved in {options.output}")
