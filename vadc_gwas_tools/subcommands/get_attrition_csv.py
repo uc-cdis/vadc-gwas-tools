@@ -48,7 +48,7 @@ class GetCohortAttritionTable(Subcommand):
             help="Prefixed concept ID to use for stratification (e.g., HARE concept).",
         )
         parser.add_argument(
-            "--output-prefix",
+            "--output_prefix",
             required=True,
             type=str,
             help="Prefix to use for outputs (1 csv for quantitative, 2 csvs for case-control).",
