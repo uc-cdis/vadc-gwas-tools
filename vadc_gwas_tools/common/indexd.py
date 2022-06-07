@@ -27,7 +27,7 @@ class IndexdServiceClient:
         auth = (indexd_user, indexd_password)
         return auth
 
-    def create_indexd_record(self, metadata="", _di=requests):
+    def create_indexd_record(self, metadata=""):
         """
         Creates indexd record from the metadata provided.
         Metadata should be a valid JSON. More information on indexd metadata
@@ -37,7 +37,7 @@ class IndexdServiceClient:
         'did' field.
         """
 
-        response = _di.post(
+        response = requests.post(
             f"{self.service_url}/index", json=metadata, auth=self.get_auth()
         )
         response.raise_for_status()
