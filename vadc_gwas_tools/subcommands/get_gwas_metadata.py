@@ -79,6 +79,12 @@ class GetGwasMetadata(Subcommand):
             help="Imputation score cutoff used to filter markers.",
         )
         parser.add_argument(
+            "--hare_population",
+            required=True,
+            type=str,
+            help="Selected HARE population for the GWAS analysis.",
+        )
+        parser.add_argument(
             "-o",
             "--output",
             required=True,
@@ -210,6 +216,7 @@ class GetGwasMetadata(Subcommand):
             "n_population_pcs": options.n_pcs,
             "maf_threshold": options.maf_threshold,
             "imputation_score_cutoff": options.imputation_score_cutoff,
+            "hare_population": options.hare_population,
         }
 
         # Put it all together and return dict
