@@ -126,9 +126,7 @@ class TestIndexdServiceClient(TestCase):
             "Authentication doesn't match when environment INDEXD keys are absent",
         )
 
-    @patch(
-        'vadc_gwas_tools.common.indexd.requests.post', side_effect=mocked_requests_post
-    )
+    @patch('requests.post', side_effect=mocked_requests_post)
     def test_create_indexd_record_nouser(self, mock_post):
         "Test create_indexd_record when no INDEXD user/password provided"
         os.environ.pop(INDEXD_USER, None)
@@ -138,17 +136,13 @@ class TestIndexdServiceClient(TestCase):
             HTTPError, client.create_indexd_record, metadata=self.metadata
         )
 
-    @patch(
-        'vadc_gwas_tools.common.indexd.requests.post', side_effect=mocked_requests_post
-    )
+    @patch('requests.post', side_effect=mocked_requests_post)
     def test_create_indexd_record_nometadata(self, mock_post):
         "Test create_indexd_record when no metadata provided"
         client = ISC()
         self.assertRaises(HTTPError, client.create_indexd_record)
 
-    @patch(
-        'vadc_gwas_tools.common.indexd.requests.post', side_effect=mocked_requests_post
-    )
+    @patch('requests.post', side_effect=mocked_requests_post)
     def test_create_indexd_record(self, mock_post):
         "Test create_indexd_record with metadata and INDEXD user/password"
         client = ISC()
