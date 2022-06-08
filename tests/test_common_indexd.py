@@ -54,11 +54,13 @@ class TestIndexdServiceClient(TestCase):
         super().setUp()
         os.environ[GEN3_ENVIRONMENT_KEY] = "default"
         os.environ[INDEXD_USER] = "TESTUSER"
-        os.environ[INDEXD_PASSWORD] = "TESTPASS"
+        os.environ[INDEXD_PASSWORD] = "TESTPASS"  # pragma: allowlist secret
         metadata = {
             "authz": ["/programs/test/projects/test"],
             "file_name": "key",
-            "hashes": {"md5": "8b9942cf415384b27cadf1f4d2d682e5"},
+            "hashes": {
+                "md5": "8b9942cf415384b27cadf1f4d2d682e5"  # pragma: allowlist secret
+            },
             "size": "123",
             "urls": ["s3://endpointurl/bucket/key"],
             "urls_metadata": {"s3://endpointurl/bucket/key": {}},
