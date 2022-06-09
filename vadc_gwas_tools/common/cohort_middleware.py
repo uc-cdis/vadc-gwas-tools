@@ -1,4 +1,4 @@
-"""Small class for interacting with the workspace token service to get a refresh token.
+"""Small class for interacting with the cohort middleware server to get a refresh token.
 This tool works only for internal URLs.
 """
 import gzip
@@ -123,6 +123,44 @@ class CohortServiceClient:
             ]
         )
         return fmt_response
+
+    def get_attrition_breakdown_csv(
+        self,
+        source_id: int,
+        cohort_definition_id: int,
+        local_path: str,
+        prefixed_concept_ids: List[str],
+        prefixed_breakdown_concept_id: str,
+        _di=requests,
+    ) -> None:
+        """
+        Hits the cohort middleware endpoint that generates an attrition table that is broken down by
+        a particular concept ID. This is most relevant for breaking down by HARE concept ID. This will
+        generate a CSV file.
+        """
+        self.logger.info(f"Source - {source_id}; Cohort - {cohort_definition_id}")
+        self.logger.info(f"Prefixed Concept IDs - {prefixed_concept_ids}")
+        self.logger.info(
+            f"Prefixed Breakdown Concept ID - {prefixed_breakdown_concept_id}"
+        )
+        payload = {
+            "ConceptIds": CohortServiceClient.strip_concept_prefix(prefixed_concept_ids)
+        }
+        breakdown_concept_id = CohortServiceClient.strip_concept_prefix(
+            prefixed_breakdown_concept_id
+        )[0]
+        req = _di.post(
+            f"{self.service_url}/concept-stats/by-source-id/{source_id}/by-cohort-definition-id/{cohort_definition_id}/breakdown-by-concept-id/{breakdown_concept_id}/csv",
+            data=json.dumps(payload),
+            headers=self.get_header(),
+            stream=True,
+        )
+        req.raise_for_status()
+        self.logger.info(f"Writing output to {local_path}...")
+        open_func = gzip.open if local_path.endswith('.gz') else open
+        with open_func(local_path, "wb") as o:  # pylint: disable=C0103
+            for chunk in req.iter_content(chunk_size=128):
+                o.write(chunk)
 
     @staticmethod
     def strip_concept_prefix(prefixed_concept_ids: Union[List[str], str]) -> List[int]:

@@ -10,6 +10,7 @@ from vadc_gwas_tools.common.logger import Logger
 from vadc_gwas_tools.subcommands import (
     CreateIndexdRecord,
     FilterSegments,
+    GetCohortAttritionTable,
     GetCohortPheno,
     GetGwasMetadata,
     SplitFilenameByChr,
@@ -45,6 +46,7 @@ def main(args=None, extra_subparser=None) -> None:
     GetCohortPheno.add(subparsers=subparsers)
     GetGwasMetadata.add(subparsers=subparsers)
     SplitFilenameByChr.add(subparsers=subparsers)
+    GetCohortAttritionTable.add(subparsers=subparsers)
 
     if extra_subparser:
         extra_subparser.add(subparsers=subparsers)
