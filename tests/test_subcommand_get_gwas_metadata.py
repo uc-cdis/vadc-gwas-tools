@@ -25,6 +25,7 @@ class MockArgs(NamedTuple):
     n_pcs: int
     maf_threshold: float
     imputation_score_cutoff: float
+    hare_population: str
     output: str
 
 
@@ -73,6 +74,7 @@ class TestGetGwasMetadataSubcommand(unittest.TestCase):
             n_pcs=3,
             maf_threshold=0.01,
             imputation_score_cutoff=0.3,
+            hare_population="Hispanic",
             output="/some/path",
         )
 
@@ -95,6 +97,7 @@ class TestGetGwasMetadataSubcommand(unittest.TestCase):
                 "n_population_pcs": args.n_pcs,
                 "maf_threshold": args.maf_threshold,
                 "imputation_score_cutoff": args.imputation_score_cutoff,
+                "hare_population": args.hare_population,
             },
         }
 
@@ -119,6 +122,7 @@ class TestGetGwasMetadataSubcommand(unittest.TestCase):
             n_pcs=3,
             maf_threshold=0.01,
             imputation_score_cutoff=0.3,
+            hare_population="Hispanic",
             output="/some/path",
         )
 
@@ -143,6 +147,7 @@ class TestGetGwasMetadataSubcommand(unittest.TestCase):
                 "n_population_pcs": args.n_pcs,
                 "maf_threshold": args.maf_threshold,
                 "imputation_score_cutoff": args.imputation_score_cutoff,
+                "hare_population": args.hare_population,
             },
         }
 
@@ -167,6 +172,7 @@ class TestGetGwasMetadataSubcommand(unittest.TestCase):
             n_pcs=3,
             maf_threshold=0.01,
             imputation_score_cutoff=0.3,
+            hare_population="Hispanic",
             output="/some/path",
         )
 
@@ -185,6 +191,7 @@ class TestGetGwasMetadataSubcommand(unittest.TestCase):
             n_pcs=3,
             maf_threshold=0.01,
             imputation_score_cutoff=0.3,
+            hare_population="Hispanic",
             output=outpath,
         )
 
@@ -206,6 +213,7 @@ class TestGetGwasMetadataSubcommand(unittest.TestCase):
                 "n_population_pcs": args.n_pcs,
                 "maf_threshold": args.maf_threshold,
                 "imputation_score_cutoff": args.imputation_score_cutoff,
+                "hare_population": args.hare_population,
             },
         }
 
@@ -255,6 +263,7 @@ class TestGetGwasMetadataSubcommand(unittest.TestCase):
             n_pcs=3,
             maf_threshold=0.01,
             imputation_score_cutoff=0.3,
+            hare_population="Hispanic",
             output=outpath,
         )
 
@@ -279,6 +288,7 @@ class TestGetGwasMetadataSubcommand(unittest.TestCase):
                 "n_population_pcs": args.n_pcs,
                 "maf_threshold": args.maf_threshold,
                 "imputation_score_cutoff": args.imputation_score_cutoff,
+                "hare_population": args.hare_population,
             },
         }
 
