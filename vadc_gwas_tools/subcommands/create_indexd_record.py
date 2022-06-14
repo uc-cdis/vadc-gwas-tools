@@ -87,16 +87,17 @@ class CreateIndexdRecord(Subcommand):
         logger.info(cls.__get_description__())
         client = IndexdServiceClient()
 
-        logger.info(f"Calculating hashes for {options.gwas_archive}...")
+        gwas_name = os.path.basename(options.gwas_archive)
+        logger.info(f"Calculating hashes for {gwas_name}...")
         hash_meta = cls._get_md5_sum(options.gwas_archive)
         logger.info(f"Hash calculated: {hash_meta}")
-        logger.info(f"Calculating file size for {options.gwas_archive}...")
+        logger.info(f"Calculating file size for {gwas_name}...")
         file_size = os.path.getsize(options.gwas_archive)
         logger.info(f"Size calculated: {file_size}")
-        logger.info(f"Preparing Indexd record for {options.gwas_archive}...")
+        logger.info(f"Preparing Indexd record for {gwas_name}...")
         metadata = {
+            "file_name": gwas_name,
             "authz": options.arborist_resource,
-            "file_name": options.gwas_archive,
             "hashes": hash_meta,
             "size": file_size,
             "urls": [options.s3_uri],
