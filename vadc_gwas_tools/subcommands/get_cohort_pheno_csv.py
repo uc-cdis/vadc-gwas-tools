@@ -10,7 +10,7 @@ import json
 import os
 import tempfile
 from argparse import ArgumentParser, Namespace
-from typing import List
+from typing import List, Set
 
 from vadc_gwas_tools.common.cohort_middleware import CohortServiceClient
 from vadc_gwas_tools.common.logger import Logger
@@ -150,8 +150,18 @@ class GetCohortPheno(Subcommand):
             source_id, control_cohort_id, tmp_control_path, prefixed_concept_ids
         )
 
-        # Process and validate
-        seen_ids = set()
+        # First pass, scan cohorts into sets
+        case_sample_ids = cls._extract_cohort_ids(tmp_case_path)
+        control_sample_ids = cls._extract_cohort_ids(tmp_control_path)
+        overlapping_sample_ids = case_sample_ids & control_sample_ids
+        if overlapping_sample_ids:
+            logger.warn(
+                "Found {} overlapping samples between case/control. These samples will be dropped.".format(
+                    len(overlapping_sample_ids)
+                )
+            )
+
+        # Generate CSV
         open_func = gzip.open if output_path.endswith('.gz') else open
         with open_func(output_path, "wt") as o:
             with open(tmp_case_path, "rt") as fh:
@@ -165,12 +175,10 @@ class GetCohortPheno(Subcommand):
 
                 for row in reader:
                     cid = row["sample.id"]
-                    row["CASE_CONTROL"] = 1
+                    if cid in overlapping_sample_ids:
+                        continue
 
-                    if cid in seen_ids:
-                        msg = "Case ID present multiple times!"
-                        raise AssertionError(msg)
-                    seen_ids.add(cid)
+                    row["CASE_CONTROL"] = 1
 
                     writer.writerow(row)
 
@@ -179,13 +187,27 @@ class GetCohortPheno(Subcommand):
 
                 for row in reader:
                     cid = row["sample.id"]
+                    if cid in overlapping_sample_ids:
+                        continue
+
                     row["CASE_CONTROL"] = 0
 
-                    if cid in seen_ids:
-                        msg = "Control ID present multiple times!"
-                        raise AssertionError(msg)
-                    seen_ids.add(cid)
                     writer.writerow(row)
+
+    @classmethod
+    def _extract_cohort_ids(cls, pheno_file_path: str) -> Set[str]:
+        """
+        Extract the sample.ids from the phenotype CSV and convert
+        to a set.
+        """
+        lst = []
+        with open(pheno_file_path, "rt") as fh:
+            reader = csv.DictReader(fh)
+
+            for row in reader:
+                sid = row["sample.id"]
+                lst.append(sid)
+        return set(lst)
 
     @classmethod
     def __get_description__(cls) -> str:
