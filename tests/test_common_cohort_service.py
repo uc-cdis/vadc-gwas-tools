@@ -241,6 +241,65 @@ class TestCohortServiceClient(unittest.TestCase):
             },
         )
 
+    def test_get_concept_description_nulls(self):
+        if GEN3_ENVIRONMENT_KEY in os.environ:
+            del os.environ[GEN3_ENVIRONMENT_KEY]
+        mock_proc = mock.create_autospec(requests.Response)
+        mock_proc.raise_for_status.return_value = None
+        mock_proc.json.return_value = {
+            "concepts": [
+                {
+                    "concept_id": 2000000001,
+                    "prefixed_concept_id": "ID_2000000001",
+                    "concept_name": "Fake 1",
+                },
+                {
+                    "concept_id": 2000000002,
+                    "prefixed_concept_id": "ID_2000000002",
+                    "concept_name": "Fake 2",
+                },
+            ]
+        }
+        self.mocks.requests.post.return_value = mock_proc
+        expected = [
+            ConceptDescriptionResponse(
+                concept_id=2000000001,
+                prefixed_concept_id="ID_2000000001",
+                concept_name="Fake 1",
+                domain_id=None,
+                domain_name=None,
+            ),
+            ConceptDescriptionResponse(
+                concept_id=2000000002,
+                prefixed_concept_id="ID_2000000002",
+                concept_name="Fake 2",
+                domain_id=None,
+                domain_name=None,
+            ),
+        ]
+
+        obj = MOD()
+        obj.get_header = mock.MagicMock(
+            return_value={
+                "Content-Type": "application/json",
+                "Authorization": "Bearer abc",
+            }
+        )
+
+        res = obj.get_concept_descriptions(
+            2, ["ID_2000000001", "ID_2000000002"], _di=self.mocks.requests
+        )
+        self.assertEqual(res, expected)
+
+        self.mocks.requests.post.assert_called_with(
+            "http://cohort-middleware-service.default/concept/by-source-id/2",
+            data=json.dumps({"ConceptIds": [2000000001, 2000000002]}),
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": "Bearer abc",
+            },
+        )
+
     def test_get_attrition_breakdown_csv(self):
         if GEN3_ENVIRONMENT_KEY in os.environ:
             del os.environ[GEN3_ENVIRONMENT_KEY]

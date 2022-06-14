@@ -5,7 +5,7 @@ import gzip
 import json
 import os
 from dataclasses import dataclass
-from typing import Dict, List, Union
+from typing import Dict, List, Optional, Union
 
 import requests
 
@@ -116,8 +116,8 @@ class CohortServiceClient:
                     concept_id=i["concept_id"],
                     prefixed_concept_id=i["prefixed_concept_id"],
                     concept_name=i["concept_name"],
-                    domain_id=i["domain_id"],
-                    domain_name=i["domain_name"],
+                    domain_id=i.get("domain_id"),
+                    domain_name=i.get("domain_name"),
                 )
                 for i in response["concepts"]
             ]
