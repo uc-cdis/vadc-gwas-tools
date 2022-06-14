@@ -54,7 +54,7 @@ class TestCreateIndexdRecord(TestCase):
             "rev": "rev1",
         }
         args = _mock_args(
-            gwas_archive="test_gwas.tar.gz",
+            gwas_archive="/path/to/test_gwas.tar.gz",
             arborist_resource="/programs/test/projects/test",
             s3_uri="s3://endpointurl/bucket/key",
             output=self.tmp_path,
@@ -73,9 +73,21 @@ class TestCreateIndexdRecord(TestCase):
             "Hash calculated: {'md5': 'eb733a00c0c9d336e65691a37ab54293'}"  # pragma: allowlist secret
         )
         expected_out.append("Size calculated: 1024")
+        expected_out.append("'file_name': 'test_gwas.tar.gz'")
+        expected_out.append("'authz': '/programs/test/projects/test'")
+        expected_out.append(
+            "'hashes': {'md5': 'eb733a00c0c9d336e65691a37ab54293'}"  # pragma: allowlist secret
+        )
+        expected_out.append("'size': 1024")
+        expected_out.append("'urls': ['s3://endpointurl/bucket/key'")
+        expected_out.append("'urls_metadata': {'s3://endpointurl/bucket/key': {}}")
+        expected_out.append("'form': 'object'")
         expected_out.append("Creating Indexd record...")
         expected_out.append(f"JSON response saved in {self.tmp_path}")
-        self.assertTrue(eo in out for eo in expected_out)
+        for eo in expected_out:
+            self.assertTrue(
+                eo in out.getvalue(), f"String not found in the output: {eo}"
+            )
 
         # Check if output file was created properly
         expected_json = {
