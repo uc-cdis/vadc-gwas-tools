@@ -4,7 +4,7 @@ This class works only for internal URLs.
 import gzip
 import json
 import os
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import Dict, List, Optional, Union
 
 import requests
@@ -61,17 +61,18 @@ class CohortServiceClient:
         source_id: int,
         cohort_definition_id: int,
         local_path: str,
-        prefixed_concept_ids: List[str],
+        variable_objects: List[
+            Union[ConceptVariableObject, CustomDichotomousVariableObject]
+        ],
         _di=requests,
     ) -> None:
         """
         Hits the cohort middleware /cohort-data endpoint to get the CSV.
-        Takes the prefixed concept ids (ID_...). If the local_path ends with '.gz'
+        Takes the list of variable object definitions. If the local_path ends with '.gz'
         the file will be gzipped.
         """
         self.logger.info(f"Source - {source_id}; Cohort - {cohort_definition_id}")
-        self.logger.info(f"Prefixed Concept IDs - {prefixed_concept_ids}")
-        payload = {"PrefixedConceptIds": prefixed_concept_ids}
+        payload = {"variables": [asdict(i) for i in variable_objects]}
         req = _di.post(
             f"{self.service_url}/cohort-data/by-source-id/{source_id}/by-cohort-definition-id/{cohort_definition_id}",  # pylint: disable=C0301
             data=json.dumps(payload),

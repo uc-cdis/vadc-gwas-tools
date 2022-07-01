@@ -58,7 +58,7 @@ class TestCohortServiceClient(unittest.TestCase):
         if GEN3_ENVIRONMENT_KEY in os.environ:
             del os.environ[GEN3_ENVIRONMENT_KEY]
 
-        fake_items = [b"sample.id,ID_001,ID_002\n", b"1001,0.01,1.5\n"]
+        fake_items = [b"sample.id,ID_1001,ID_1002,ID_10_20\n", b"1001,0.01,1.5,1\n"]
         mock_proc = mock.create_autospec(requests.Response)
         mock_proc.raise_for_status.return_value = None
         mock_proc.iter_content.return_value = self._return_generator(fake_items)
@@ -74,12 +74,40 @@ class TestCohortServiceClient(unittest.TestCase):
 
         (fd1, fpath1) = tempfile.mkstemp()
         try:
-            obj.get_cohort_csv(
-                1, 2, fpath1, ["ID_001", "ID_002"], _di=self.mocks.requests
-            )
+            variables = [
+                ConceptVariableObject(
+                    variable_type="concept",
+                    concept_id=1001,
+                    prefixed_concept_id="ID_1001",
+                ),
+                ConceptVariableObject(
+                    variable_type="concept",
+                    concept_id=1002,
+                    prefixed_concept_id="ID_1002",
+                ),
+                CustomDichotomousVariableObject(
+                    variable_type="custom_dichotomous", cohort_ids=[10, 20]
+                ),
+            ]
+            obj.get_cohort_csv(1, 2, fpath1, variables, _di=self.mocks.requests)
+            exp_payload = {
+                "variables": [
+                    {
+                        "variable_type": "concept",
+                        "concept_id": 1001,
+                        "prefixed_concept_id": "ID_1001",
+                    },
+                    {
+                        "variable_type": "concept",
+                        "concept_id": 1002,
+                        "prefixed_concept_id": "ID_1002",
+                    },
+                    {"variable_type": "custom_dichotomous", "cohort_ids": [10, 20]},
+                ]
+            }
             self.mocks.requests.post.assert_called_with(
                 "http://cohort-middleware-service.default/cohort-data/by-source-id/1/by-cohort-definition-id/2",
-                data=json.dumps({"PrefixedConceptIds": ["ID_001", "ID_002"]}),
+                data=json.dumps(exp_payload),
                 headers={
                     "Content-Type": "application/json",
                     "Authorization": "Bearer abc",
@@ -94,10 +122,12 @@ class TestCohortServiceClient(unittest.TestCase):
 
             with open(fpath1, "rt") as fh:
                 header = fh.readline().rstrip("\r\n").split(",")
-                self.assertEqual(header, ["sample.id", "ID_001", "ID_002"])
+                self.assertEqual(
+                    header, ["sample.id", "ID_1001", "ID_1002", "ID_10_20"]
+                )
 
                 dat1 = fh.readline().rstrip("\r\n").split(",")
-                self.assertEqual(dat1, ["1001", "0.01", "1.5"])
+                self.assertEqual(dat1, ["1001", "0.01", "1.5", "1"])
 
         finally:
             cleanup_files(fpath1)
@@ -106,7 +136,7 @@ class TestCohortServiceClient(unittest.TestCase):
         if GEN3_ENVIRONMENT_KEY in os.environ:
             del os.environ[GEN3_ENVIRONMENT_KEY]
 
-        fake_items = [b"sample.id,ID_001,ID_002\n", b"1001,0.01,1.5\n"]
+        fake_items = [b"sample.id,ID_1001,ID_1002,ID_10_20\n", b"1001,0.01,1.5,1\n"]
         mock_proc = mock.create_autospec(requests.Response)
         mock_proc.raise_for_status.return_value = None
         mock_proc.iter_content.return_value = self._return_generator(fake_items)
@@ -122,15 +152,54 @@ class TestCohortServiceClient(unittest.TestCase):
 
         (fd1, fpath1) = tempfile.mkstemp(suffix=".csv.gz")
         try:
-            obj.get_cohort_csv(
-                1, 2, fpath1, ["ID_001", "ID_002"], _di=self.mocks.requests
+            variables = [
+                ConceptVariableObject(
+                    variable_type="concept",
+                    concept_id=1001,
+                    prefixed_concept_id="ID_1001",
+                ),
+                ConceptVariableObject(
+                    variable_type="concept",
+                    concept_id=1002,
+                    prefixed_concept_id="ID_1002",
+                ),
+                CustomDichotomousVariableObject(
+                    variable_type="custom_dichotomous", cohort_ids=[10, 20]
+                ),
+            ]
+            obj.get_cohort_csv(1, 2, fpath1, variables, _di=self.mocks.requests)
+            exp_payload = {
+                "variables": [
+                    {
+                        "variable_type": "concept",
+                        "concept_id": 1001,
+                        "prefixed_concept_id": "ID_1001",
+                    },
+                    {
+                        "variable_type": "concept",
+                        "concept_id": 1002,
+                        "prefixed_concept_id": "ID_1002",
+                    },
+                    {"variable_type": "custom_dichotomous", "cohort_ids": [10, 20]},
+                ]
+            }
+            self.mocks.requests.post.assert_called_with(
+                "http://cohort-middleware-service.default/cohort-data/by-source-id/1/by-cohort-definition-id/2",
+                data=json.dumps(exp_payload),
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer abc",
+                },
+                stream=True,
             )
             with gzip.open(fpath1, "rt") as fh:
                 header = fh.readline().rstrip("\r\n").split(",")
-                self.assertEqual(header, ["sample.id", "ID_001", "ID_002"])
+                self.assertEqual(
+                    header, ["sample.id", "ID_1001", "ID_1002", "ID_10_20"]
+                )
 
                 dat1 = fh.readline().rstrip("\r\n").split(",")
-                self.assertEqual(dat1, ["1001", "0.01", "1.5"])
+                self.assertEqual(dat1, ["1001", "0.01", "1.5", "1"])
 
         finally:
             cleanup_files(fpath1)
@@ -356,6 +425,8 @@ class TestCohortServiceClient(unittest.TestCase):
         finally:
             cleanup_files(fpath1)
 
+
+class TestCohortServiceClientVariableObjects(unittest.TestCase):
     def test_decode_concept_variable_json_concept(self):
         # Dict like concept_id outcome would be
         obj = {"variable_type": "concept", "concept_id": 20000001}
