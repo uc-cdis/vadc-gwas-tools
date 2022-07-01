@@ -12,7 +12,11 @@ from utils import cleanup_files
 
 from vadc_gwas_tools.common.cohort_middleware import CohortDefinitionResponse
 from vadc_gwas_tools.common.cohort_middleware import CohortServiceClient as MOD
-from vadc_gwas_tools.common.cohort_middleware import ConceptDescriptionResponse
+from vadc_gwas_tools.common.cohort_middleware import (
+    ConceptDescriptionResponse,
+    ConceptVariableObject,
+    CustomDichotomousVariableObject,
+)
 from vadc_gwas_tools.common.const import GEN3_ENVIRONMENT_KEY
 
 
@@ -351,3 +355,119 @@ class TestCohortServiceClient(unittest.TestCase):
 
         finally:
             cleanup_files(fpath1)
+
+    def test_decode_concept_variable_json_concept(self):
+        # Dict like concept_id outcome would be
+        obj = {"variable_type": "concept", "concept_id": 20000001}
+        obj_json_str = json.dumps(obj)
+        expected = ConceptVariableObject(
+            variable_type=obj['variable_type'],
+            concept_id=obj['concept_id'],
+            prefixed_concept_id=None,
+        )
+
+        result = json.loads(obj_json_str, object_hook=MOD.decode_concept_variable_json)
+        self.assertEqual(expected, result)
+
+        # List of Dicts like covariates
+        obj = [
+            {"variable_type": "concept", "concept_id": 20000001},
+            {
+                "variable_type": "concept",
+                "concept_id": 20000001,
+                "prefixed_concept_id": "ID_20000001",
+            },
+        ]
+        obj_json_str = json.dumps(obj)
+        expected = [
+            ConceptVariableObject(
+                variable_type=i['variable_type'],
+                concept_id=i['concept_id'],
+                prefixed_concept_id=i.get('prefixed_concept_id'),
+            )
+            for i in obj
+        ]
+
+        result = json.loads(obj_json_str, object_hook=MOD.decode_concept_variable_json)
+        self.assertEqual(expected, result)
+
+    def test_decode_concept_variable_json_custom_dichotomous(self):
+        # Dict like concept_id outcome would be
+        obj = {"variable_type": "custom_dichotomous", "cohort_ids": [10, 20]}
+        obj_json_str = json.dumps(obj)
+        expected = CustomDichotomousVariableObject(
+            variable_type=obj['variable_type'], cohort_ids=obj['cohort_ids']
+        )
+
+        result = json.loads(obj_json_str, object_hook=MOD.decode_concept_variable_json)
+        self.assertEqual(expected, result)
+
+        # List of Dicts like covariates
+        obj = [
+            {"variable_type": "custom_dichotomous", "cohort_ids": [10, 20]},
+            {"variable_type": "custom_dichotomous", "cohort_ids": [30, 40]},
+        ]
+        obj_json_str = json.dumps(obj)
+        expected = [
+            CustomDichotomousVariableObject(
+                variable_type=i['variable_type'], cohort_ids=i['cohort_ids']
+            )
+            for i in obj
+        ]
+
+        result = json.loads(obj_json_str, object_hook=MOD.decode_concept_variable_json)
+        self.assertEqual(expected, result)
+
+    def test_decode_concept_variable_json_mixed_types(self):
+        # List of Dicts like covariates
+        obj = [
+            {"variable_type": "custom_dichotomous", "cohort_ids": [10, 20]},
+            {"variable_type": "custom_dichotomous", "cohort_ids": [30, 40]},
+            {
+                "variable_type": "concept",
+                "concept_id": 20000001,
+                "prefixed_concept_id": "ID_20000001",
+            },
+        ]
+        obj_json_str = json.dumps(obj)
+        expected = [
+            CustomDichotomousVariableObject(
+                variable_type="custom_dichotomous", cohort_ids=[10, 20]
+            ),
+            CustomDichotomousVariableObject(
+                variable_type="custom_dichotomous", cohort_ids=[30, 40]
+            ),
+            ConceptVariableObject(
+                variable_type="concept",
+                concept_id=20000001,
+                prefixed_concept_id="ID_20000001",
+            ),
+        ]
+
+        result = json.loads(obj_json_str, object_hook=MOD.decode_concept_variable_json)
+        self.assertEqual(expected, result)
+
+    def test_decode_concept_variable_json_error(self):
+        # Dict like concept_id outcome would be
+        obj = {"variable_type": "other", "concept_id": 20000001}
+        obj_json_str = json.dumps(obj)
+
+        with self.assertRaises(RuntimeError) as e:
+            result = json.loads(
+                obj_json_str, object_hook=MOD.decode_concept_variable_json
+            )
+
+        # List of Dicts like covariates
+        obj = [
+            {"variable_type": "concept", "concept_id": 20000001},
+            {
+                "variable_type": "other",
+                "concept_id": 20000001,
+                "prefixed_concept_id": "ID_20000001",
+            },
+        ]
+        obj_json_str = json.dumps(obj)
+        with self.assertRaises(RuntimeError) as e:
+            result = json.loads(
+                obj_json_str, object_hook=MOD.decode_concept_variable_json
+            )

@@ -1,5 +1,5 @@
-"""Small class for interacting with the cohort middleware server to get a refresh token.
-This tool works only for internal URLs.
+"""Small class for interacting with the cohort middleware server.
+This class works only for internal URLs.
 """
 import gzip
 import json
@@ -28,6 +28,19 @@ class ConceptDescriptionResponse:
     concept_name: str
     domain_id: str
     domain_name: str
+
+
+@dataclass
+class ConceptVariableObject:
+    variable_type: str
+    concept_id: int
+    prefixed_concept_id: Optional[str] = None
+
+
+@dataclass
+class CustomDichotomousVariableObject:
+    variable_type: str
+    cohort_ids: List[int]
 
 
 class CohortServiceClient:
@@ -170,3 +183,45 @@ class CohortServiceClient:
         if isinstance(prefixed_concept_ids, str):
             prefixed_concept_ids = [prefixed_concept_ids]
         return list(map(lambda x: int(x.lstrip('ID_')), prefixed_concept_ids))
+
+    @staticmethod
+    def decode_concept_variable_json(
+        obj: Union[
+            List[Dict[str, Union[str, int, List[int]]]],
+            Dict[str, Union[str, int, List[int]]],
+        ]
+    ) -> List[Union[ConceptVariableObject, CustomDichotomousVariableObject]]:
+        """
+        JSON decoder for covariates/outcomes in new JSON format.
+        """
+        result = None
+        if isinstance(obj, list):
+            result = []
+            for item in obj:
+                if item['variable_type'] == "concept":
+                    val = ConceptVariableObject(**item)
+                    result.append(val)
+                elif item['variable_type'] == "custom_dichotomous":
+                    val = CustomDichotomousVariableObject(**item)
+                    result.append(val)
+                else:
+                    msg = (
+                        "Currently we only support 'concept' and 'custom_dichotomous' variable "
+                        "types, but you provided {}".format(item.get('variable_type'))
+                    )
+                    self.logger.error(msg)
+                    raise RuntimeError(msg)
+
+        elif isinstance(obj, dict):
+            result = {}
+            if obj['variable_type'] == "concept":
+                result = ConceptVariableObject(**obj)
+            elif obj['variable_type'] == "custom_dichotomous":
+                result = CustomDichotomousVariableObject(**obj)
+            else:
+                msg = (
+                    "Currently we only support 'concept' and 'custom_dichotomous' variable "
+                    "types, but you provided {}".format(obj.get('variable_type'))
+                )
+                raise RuntimeError(msg)
+        return result
