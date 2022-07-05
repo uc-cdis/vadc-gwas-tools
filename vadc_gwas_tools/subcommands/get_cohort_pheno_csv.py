@@ -87,7 +87,7 @@ class GetCohortPheno(Subcommand):
             logger.info(f"Cohort: {options.case_cohort_id}")
 
         # Load JSON object
-        with open(options.variables_json, 'wt') as fh:
+        with open(options.variables_json, 'rt') as fh:
             variables = json.load(
                 fh, object_hook=CohortServiceClient.decode_concept_variable_json
             )
