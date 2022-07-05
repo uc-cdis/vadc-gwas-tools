@@ -1,4 +1,5 @@
 """This modules tests `vadc_gwas_tools.common.cohort_middleware.CohortServiceClient` class."""
+import dataclasses
 import gzip
 import json
 import os
@@ -215,6 +216,11 @@ class TestCohortServiceClient(unittest.TestCase):
         ret = MOD.strip_concept_prefix(pfx_concept)
         self.assertEqual(ret, expected)
 
+        pfx_concept = "2000000002"
+        expected = [2000000002]
+        ret = MOD.strip_concept_prefix(pfx_concept)
+        self.assertEqual(ret, expected)
+
     def test_get_cohort_definition(self):
         mock_proc = mock.create_autospec(requests.Response)
         mock_proc.raise_for_status.return_value = None
@@ -397,12 +403,29 @@ class TestCohortServiceClient(unittest.TestCase):
 
         (fd1, fpath1) = tempfile.mkstemp()
         try:
+            variables = [
+                ConceptVariableObject(
+                    variable_type="concept",
+                    concept_id=1001,
+                    prefixed_concept_id="ID_1001",
+                ),
+                ConceptVariableObject(
+                    variable_type="concept",
+                    concept_id=1002,
+                    prefixed_concept_id="ID_1002",
+                ),
+                CustomDichotomousVariableObject(
+                    variable_type="custom_dichotomous", cohort_ids=[10, 20]
+                ),
+            ]
             obj.get_attrition_breakdown_csv(
-                1, 2, fpath1, ["ID_2001", "ID_2002"], "ID_6000", _di=self.mocks.requests
+                1, 2, fpath1, variables, "ID_6000", _di=self.mocks.requests
             )
             self.mocks.requests.post.assert_called_with(
                 "http://cohort-middleware-service.default/concept-stats/by-source-id/1/by-cohort-definition-id/2/breakdown-by-concept-id/6000/csv",
-                data=json.dumps({"ConceptIds": [2001, 2002]}),
+                data=json.dumps(
+                    {"variables": [dataclasses.asdict(i) for i in variables]}
+                ),
                 headers={
                     "Content-Type": "application/json",
                     "Authorization": "Bearer abc",

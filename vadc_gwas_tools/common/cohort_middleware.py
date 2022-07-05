@@ -143,7 +143,9 @@ class CohortServiceClient:
         source_id: int,
         cohort_definition_id: int,
         local_path: str,
-        prefixed_concept_ids: List[str],
+        variable_objects: List[
+            Union[ConceptVariableObject, CustomDichotomousVariableObject]
+        ],
         prefixed_breakdown_concept_id: str,
         _di=requests,
     ) -> None:
@@ -153,13 +155,11 @@ class CohortServiceClient:
         generate a CSV file.
         """
         self.logger.info(f"Source - {source_id}; Cohort - {cohort_definition_id}")
-        self.logger.info(f"Prefixed Concept IDs - {prefixed_concept_ids}")
+        self.logger.info(f"Variables - {variable_objects}")
         self.logger.info(
             f"Prefixed Breakdown Concept ID - {prefixed_breakdown_concept_id}"
         )
-        payload = {
-            "ConceptIds": CohortServiceClient.strip_concept_prefix(prefixed_concept_ids)
-        }
+        payload = {"variables": [asdict(i) for i in variable_objects]}
         breakdown_concept_id = CohortServiceClient.strip_concept_prefix(
             prefixed_breakdown_concept_id
         )[0]
