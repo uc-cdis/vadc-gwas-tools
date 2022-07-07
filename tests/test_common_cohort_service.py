@@ -307,7 +307,7 @@ class TestCohortServiceClient(unittest.TestCase):
         )
 
         res = obj.get_concept_descriptions(
-            2, ["ID_2000000001", "ID_2000000002"], _di=self.mocks.requests
+            2, [2000000001, 2000000002], _di=self.mocks.requests
         )
         self.assertEqual(res, expected)
 
@@ -334,7 +334,6 @@ class TestCohortServiceClient(unittest.TestCase):
                 },
                 {
                     "concept_id": 2000000002,
-                    "prefixed_concept_id": "ID_2000000002",
                     "concept_name": "Fake 2",
                 },
             ]
@@ -350,7 +349,7 @@ class TestCohortServiceClient(unittest.TestCase):
             ),
             ConceptDescriptionResponse(
                 concept_id=2000000002,
-                prefixed_concept_id="ID_2000000002",
+                prefixed_concept_id=None,
                 concept_name="Fake 2",
                 domain_id=None,
                 domain_name=None,
@@ -366,7 +365,7 @@ class TestCohortServiceClient(unittest.TestCase):
         )
 
         res = obj.get_concept_descriptions(
-            2, ["ID_2000000001", "ID_2000000002"], _di=self.mocks.requests
+            2, [2000000001, 2000000002], _di=self.mocks.requests
         )
         self.assertEqual(res, expected)
 

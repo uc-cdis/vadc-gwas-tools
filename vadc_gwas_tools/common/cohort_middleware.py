@@ -18,16 +18,16 @@ from vadc_gwas_tools.common.wts import WorkspaceTokenServiceClient
 class CohortDefinitionResponse:
     cohort_definition_id: int
     cohort_name: str
-    cohort_description: str
+    cohort_description: Optional[str] = None
 
 
 @dataclass
 class ConceptDescriptionResponse:
     concept_id: int
-    prefixed_concept_id: str
     concept_name: str
-    domain_id: str
-    domain_name: str
+    prefixed_concept_id: Optional[str] = None
+    domain_id: Optional[str] = None
+    domain_name: Optional[str] = None
 
 
 @dataclass
@@ -107,16 +107,14 @@ class CohortServiceClient:
         )
 
     def get_concept_descriptions(
-        self, source_id: int, prefixed_concept_ids: List[str], _di=requests
+        self, source_id: int, concept_ids: List[int], _di=requests
     ) -> List[ConceptDescriptionResponse]:
         """
         Makes cohort middleware request to get descriptions of concept IDs
         and formats into a list of ConceptDescriptionResponse objects.
         """
-        self.logger.info(f"Prefixed Concept IDs: {prefixed_concept_ids}")
-        payload = {
-            "ConceptIds": CohortServiceClient.strip_concept_prefix(prefixed_concept_ids)
-        }
+        self.logger.info(f"Concept IDs: {concept_ids}")
+        payload = {"ConceptIds": concept_ids}
         req = _di.post(
             f"{self.service_url}/concept/by-source-id/{source_id}",
             data=json.dumps(payload),
@@ -124,18 +122,7 @@ class CohortServiceClient:
         )
         req.raise_for_status()
         response = req.json()
-        fmt_response = list(
-            [
-                ConceptDescriptionResponse(
-                    concept_id=i["concept_id"],
-                    prefixed_concept_id=i["prefixed_concept_id"],
-                    concept_name=i["concept_name"],
-                    domain_id=i.get("domain_id"),
-                    domain_name=i.get("domain_name"),
-                )
-                for i in response["concepts"]
-            ]
-        )
+        fmt_response = [ConceptDescriptionResponse(**i) for i in response["concepts"]]
         return fmt_response
 
     def get_attrition_breakdown_csv(
