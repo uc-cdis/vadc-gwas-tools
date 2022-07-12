@@ -103,7 +103,11 @@ class TestCohortServiceClient(unittest.TestCase):
                         "concept_id": 1002,
                         "prefixed_concept_id": "ID_1002",
                     },
-                    {"variable_type": "custom_dichotomous", "cohort_ids": [10, 20]},
+                    {
+                        "variable_type": "custom_dichotomous",
+                        "cohort_ids": [10, 20],
+                        "provided_name": None,
+                    },
                 ]
             }
             self.mocks.requests.post.assert_called_with(
@@ -181,7 +185,11 @@ class TestCohortServiceClient(unittest.TestCase):
                         "concept_id": 1002,
                         "prefixed_concept_id": "ID_1002",
                     },
-                    {"variable_type": "custom_dichotomous", "cohort_ids": [10, 20]},
+                    {
+                        "variable_type": "custom_dichotomous",
+                        "cohort_ids": [10, 20],
+                        "provided_name": None,
+                    },
                 ]
             }
             self.mocks.requests.post.assert_called_with(
@@ -498,15 +506,14 @@ class TestCohortServiceClientVariableObjects(unittest.TestCase):
         # List of Dicts like covariates
         obj = [
             {"variable_type": "custom_dichotomous", "cohort_ids": [10, 20]},
-            {"variable_type": "custom_dichotomous", "cohort_ids": [30, 40]},
+            {
+                "variable_type": "custom_dichotomous",
+                "provided_name": "TEST",
+                "cohort_ids": [30, 40],
+            },
         ]
         obj_json_str = json.dumps(obj)
-        expected = [
-            CustomDichotomousVariableObject(
-                variable_type=i['variable_type'], cohort_ids=i['cohort_ids']
-            )
-            for i in obj
-        ]
+        expected = [CustomDichotomousVariableObject(**i) for i in obj]
 
         result = json.loads(obj_json_str, object_hook=MOD.decode_concept_variable_json)
         self.assertEqual(expected, result)
@@ -514,8 +521,16 @@ class TestCohortServiceClientVariableObjects(unittest.TestCase):
     def test_decode_concept_variable_json_mixed_types(self):
         # List of Dicts like covariates
         obj = [
-            {"variable_type": "custom_dichotomous", "cohort_ids": [10, 20]},
-            {"variable_type": "custom_dichotomous", "cohort_ids": [30, 40]},
+            {
+                "variable_type": "custom_dichotomous",
+                "provided_name": "My custom variable 1",
+                "cohort_ids": [10, 20],
+            },
+            {
+                "variable_type": "custom_dichotomous",
+                "provided_name": "My custom variable 2",
+                "cohort_ids": [30, 40],
+            },
             {
                 "variable_type": "concept",
                 "concept_id": 20000001,
@@ -525,10 +540,14 @@ class TestCohortServiceClientVariableObjects(unittest.TestCase):
         obj_json_str = json.dumps(obj)
         expected = [
             CustomDichotomousVariableObject(
-                variable_type="custom_dichotomous", cohort_ids=[10, 20]
+                variable_type="custom_dichotomous",
+                provided_name="My custom variable 1",
+                cohort_ids=[10, 20],
             ),
             CustomDichotomousVariableObject(
-                variable_type="custom_dichotomous", cohort_ids=[30, 40]
+                variable_type="custom_dichotomous",
+                provided_name="My custom variable 2",
+                cohort_ids=[30, 40],
             ),
             ConceptVariableObject(
                 variable_type="concept",

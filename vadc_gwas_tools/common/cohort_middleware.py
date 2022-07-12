@@ -41,6 +41,7 @@ class ConceptVariableObject:
 class CustomDichotomousVariableObject:
     variable_type: str
     cohort_ids: List[int]
+    provided_name: Optional[str] = None
 
 
 class CohortServiceClient:
