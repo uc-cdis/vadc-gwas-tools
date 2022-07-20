@@ -41,14 +41,14 @@ def make_cohort_def(cohort_definition_id, cohort_name, cohort_description):
 
 
 def make_concept_def(
-    concept_id, prefixed_concept_id, concept_name, domain_id, domain_name
+    concept_id, prefixed_concept_id, concept_name, concept_code, concept_type
 ):
     return ConceptDescriptionResponse(
         concept_id=concept_id,
         prefixed_concept_id=prefixed_concept_id,
         concept_name=concept_name,
-        domain_id=domain_id,
-        domain_name=domain_name,
+        concept_code=concept_code,
+        concept_type=concept_type,
     )
 
 
@@ -119,9 +119,9 @@ class GetGwasMetadataSubcommand_SharedObjects(unittest.TestCase):
         self.control_cohort_id = 10
         self.outcome_concept_id = "1003"
         self.concept_defs = [
-            make_concept_def(1001, "ID_1", "Var A", "Observation", "Observation"),
-            make_concept_def(1002, "ID_2", "Var B", "Observation", "Observation"),
-            make_concept_def(1003, "ID_3", "Var C", "Observation", "Observation"),
+            make_concept_def(1001, "ID_1", "Var A", "VALUE", "MVP Type"),
+            make_concept_def(1002, "ID_2", "Var B", "VALUE", "MVP Type"),
+            make_concept_def(1003, "ID_3", "Var C", "VALUE", "MVP Type"),
         ]
         self.custom_dichotomous_variables = [
             CustomDichotomousVariableObject(

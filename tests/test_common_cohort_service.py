@@ -276,15 +276,15 @@ class TestCohortServiceClient(unittest.TestCase):
                     "concept_id": 2000000001,
                     "prefixed_concept_id": "ID_2000000001",
                     "concept_name": "Fake 1",
-                    "domain_id": "Observation",
-                    "domain_name": "Observation",
+                    "concept_code": "TEST",
+                    "concept_type": "MVP Continuous",
                 },
                 {
                     "concept_id": 2000000002,
                     "prefixed_concept_id": "ID_2000000002",
                     "concept_name": "Fake 2",
-                    "domain_id": "Observation",
-                    "domain_name": "Observation",
+                    "concept_code": "TEST 2",
+                    "concept_type": "MVP Continuous",
                 },
             ]
         }
@@ -294,15 +294,15 @@ class TestCohortServiceClient(unittest.TestCase):
                 concept_id=2000000001,
                 prefixed_concept_id="ID_2000000001",
                 concept_name="Fake 1",
-                domain_id="Observation",
-                domain_name="Observation",
+                concept_code="TEST",
+                concept_type="MVP Continuous",
             ),
             ConceptDescriptionResponse(
                 concept_id=2000000002,
                 prefixed_concept_id="ID_2000000002",
                 concept_name="Fake 2",
-                domain_id="Observation",
-                domain_name="Observation",
+                concept_code="TEST 2",
+                concept_type="MVP Continuous",
             ),
         ]
 
@@ -352,15 +352,15 @@ class TestCohortServiceClient(unittest.TestCase):
                 concept_id=2000000001,
                 prefixed_concept_id="ID_2000000001",
                 concept_name="Fake 1",
-                domain_id=None,
-                domain_name=None,
+                concept_code=None,
+                concept_type=None,
             ),
             ConceptDescriptionResponse(
                 concept_id=2000000002,
                 prefixed_concept_id=None,
                 concept_name="Fake 2",
-                domain_id=None,
-                domain_name=None,
+                concept_code=None,
+                concept_type=None,
             ),
         ]
 

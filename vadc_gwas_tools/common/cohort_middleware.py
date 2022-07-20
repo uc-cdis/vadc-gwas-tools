@@ -26,8 +26,8 @@ class ConceptDescriptionResponse:
     concept_id: int
     concept_name: str
     prefixed_concept_id: Optional[str] = None
-    domain_id: Optional[str] = None
-    domain_name: Optional[str] = None
+    concept_code: Optional[str] = None
+    concept_type: Optional[str] = None
 
 
 @dataclass
