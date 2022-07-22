@@ -10,9 +10,13 @@ import json
 import os
 import tempfile
 from argparse import ArgumentParser, Namespace
-from typing import List, Set
+from typing import List, Set, Union
 
-from vadc_gwas_tools.common.cohort_middleware import CohortServiceClient
+from vadc_gwas_tools.common.cohort_middleware import (
+    CohortServiceClient,
+    ConceptVariableObject,
+    CustomDichotomousVariableObject,
+)
 from vadc_gwas_tools.common.logger import Logger
 from vadc_gwas_tools.subcommands import Subcommand
 
@@ -45,10 +49,9 @@ class GetCohortPheno(Subcommand):
             ),
         )
         parser.add_argument(
-            "--prefixed_concept_ids",
+            "--variables_json",
             required=True,
-            nargs="+",
-            help="Prefixed concept IDs",
+            help="Path to the JSON file containing the variable objects.",
         )
         parser.add_argument(
             "-o",
@@ -83,6 +86,12 @@ class GetCohortPheno(Subcommand):
             logger.info("Continuous phenotype Design...")
             logger.info(f"Cohort: {options.case_cohort_id}")
 
+        # Load JSON object
+        with open(options.variables_json, 'rt') as fh:
+            variables = json.load(
+                fh, object_hook=CohortServiceClient.decode_concept_variable_json
+            )
+
         # Client
         client = CohortServiceClient()
 
@@ -92,7 +101,7 @@ class GetCohortPheno(Subcommand):
                 options.source_id,
                 options.case_cohort_id,
                 options.control_cohort_id,
-                options.prefixed_concept_ids,
+                variables,
                 options.output,
                 logger,
             )
@@ -101,7 +110,7 @@ class GetCohortPheno(Subcommand):
                 client,
                 options.source_id,
                 options.case_cohort_id,
-                options.prefixed_concept_ids,
+                variables,
                 options.output,
                 logger,
             )
@@ -112,7 +121,7 @@ class GetCohortPheno(Subcommand):
         client: CohortServiceClient,
         source_id: int,
         case_cohort_id: int,
-        prefixed_concept_ids: List[str],
+        variables: List[Union[ConceptVariableObject, CustomDichotomousVariableObject]],
         output_path: str,
         logger: Logger,
     ) -> None:
@@ -120,9 +129,7 @@ class GetCohortPheno(Subcommand):
         Main logic flow for getting the variable CSV for continuous phenotype which only has 1 cohort to call.
         """
         # Make request
-        client.get_cohort_csv(
-            source_id, case_cohort_id, output_path, prefixed_concept_ids
-        )
+        client.get_cohort_csv(source_id, case_cohort_id, output_path, variables)
 
     @classmethod
     def _process_case_control(
@@ -131,7 +138,7 @@ class GetCohortPheno(Subcommand):
         source_id: int,
         case_cohort_id: int,
         control_cohort_id: int,
-        prefixed_concept_ids: List[str],
+        variables: List[Union[ConceptVariableObject, CustomDichotomousVariableObject]],
         output_path: str,
         logger: Logger,
     ) -> None:
@@ -140,15 +147,11 @@ class GetCohortPheno(Subcommand):
         """
         # Get cases
         (_, tmp_case_path) = tempfile.mkstemp()
-        client.get_cohort_csv(
-            source_id, case_cohort_id, tmp_case_path, prefixed_concept_ids
-        )
+        client.get_cohort_csv(source_id, case_cohort_id, tmp_case_path, variables)
 
         # Get controls
         (_, tmp_control_path) = tempfile.mkstemp()
-        client.get_cohort_csv(
-            source_id, control_cohort_id, tmp_control_path, prefixed_concept_ids
-        )
+        client.get_cohort_csv(source_id, control_cohort_id, tmp_control_path, variables)
 
         # First pass, scan cohorts into sets
         case_sample_ids = cls._extract_cohort_ids(tmp_case_path)

@@ -1,10 +1,10 @@
-"""Small class for interacting with the cohort middleware server to get a refresh token.
-This tool works only for internal URLs.
+"""Small class for interacting with the cohort middleware server.
+This class works only for internal URLs.
 """
 import gzip
 import json
 import os
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import Dict, List, Optional, Union
 
 import requests
@@ -18,16 +18,30 @@ from vadc_gwas_tools.common.wts import WorkspaceTokenServiceClient
 class CohortDefinitionResponse:
     cohort_definition_id: int
     cohort_name: str
-    cohort_description: str
+    cohort_description: Optional[str] = None
 
 
 @dataclass
 class ConceptDescriptionResponse:
     concept_id: int
-    prefixed_concept_id: str
     concept_name: str
-    domain_id: str
-    domain_name: str
+    prefixed_concept_id: Optional[str] = None
+    concept_code: Optional[str] = None
+    concept_type: Optional[str] = None
+
+
+@dataclass
+class ConceptVariableObject:
+    variable_type: str
+    concept_id: int
+    prefixed_concept_id: Optional[str] = None
+
+
+@dataclass
+class CustomDichotomousVariableObject:
+    variable_type: str
+    cohort_ids: List[int]
+    provided_name: Optional[str] = None
 
 
 class CohortServiceClient:
@@ -48,17 +62,18 @@ class CohortServiceClient:
         source_id: int,
         cohort_definition_id: int,
         local_path: str,
-        prefixed_concept_ids: List[str],
+        variable_objects: List[
+            Union[ConceptVariableObject, CustomDichotomousVariableObject]
+        ],
         _di=requests,
     ) -> None:
         """
         Hits the cohort middleware /cohort-data endpoint to get the CSV.
-        Takes the prefixed concept ids (ID_...). If the local_path ends with '.gz'
+        Takes the list of variable object definitions. If the local_path ends with '.gz'
         the file will be gzipped.
         """
         self.logger.info(f"Source - {source_id}; Cohort - {cohort_definition_id}")
-        self.logger.info(f"Prefixed Concept IDs - {prefixed_concept_ids}")
-        payload = {"PrefixedConceptIds": prefixed_concept_ids}
+        payload = {"variables": [asdict(i) for i in variable_objects]}
         req = _di.post(
             f"{self.service_url}/cohort-data/by-source-id/{source_id}/by-cohort-definition-id/{cohort_definition_id}",  # pylint: disable=C0301
             data=json.dumps(payload),
@@ -93,16 +108,14 @@ class CohortServiceClient:
         )
 
     def get_concept_descriptions(
-        self, source_id: int, prefixed_concept_ids: List[str], _di=requests
+        self, source_id: int, concept_ids: List[int], _di=requests
     ) -> List[ConceptDescriptionResponse]:
         """
         Makes cohort middleware request to get descriptions of concept IDs
         and formats into a list of ConceptDescriptionResponse objects.
         """
-        self.logger.info(f"Prefixed Concept IDs: {prefixed_concept_ids}")
-        payload = {
-            "ConceptIds": CohortServiceClient.strip_concept_prefix(prefixed_concept_ids)
-        }
+        self.logger.info(f"Concept IDs: {concept_ids}")
+        payload = {"ConceptIds": concept_ids}
         req = _di.post(
             f"{self.service_url}/concept/by-source-id/{source_id}",
             data=json.dumps(payload),
@@ -110,18 +123,7 @@ class CohortServiceClient:
         )
         req.raise_for_status()
         response = req.json()
-        fmt_response = list(
-            [
-                ConceptDescriptionResponse(
-                    concept_id=i["concept_id"],
-                    prefixed_concept_id=i["prefixed_concept_id"],
-                    concept_name=i["concept_name"],
-                    domain_id=i.get("domain_id"),
-                    domain_name=i.get("domain_name"),
-                )
-                for i in response["concepts"]
-            ]
-        )
+        fmt_response = [ConceptDescriptionResponse(**i) for i in response["concepts"]]
         return fmt_response
 
     def get_attrition_breakdown_csv(
@@ -129,7 +131,9 @@ class CohortServiceClient:
         source_id: int,
         cohort_definition_id: int,
         local_path: str,
-        prefixed_concept_ids: List[str],
+        variable_objects: List[
+            Union[ConceptVariableObject, CustomDichotomousVariableObject]
+        ],
         prefixed_breakdown_concept_id: str,
         _di=requests,
     ) -> None:
@@ -139,13 +143,11 @@ class CohortServiceClient:
         generate a CSV file.
         """
         self.logger.info(f"Source - {source_id}; Cohort - {cohort_definition_id}")
-        self.logger.info(f"Prefixed Concept IDs - {prefixed_concept_ids}")
+        self.logger.info(f"Variables - {variable_objects}")
         self.logger.info(
             f"Prefixed Breakdown Concept ID - {prefixed_breakdown_concept_id}"
         )
-        payload = {
-            "ConceptIds": CohortServiceClient.strip_concept_prefix(prefixed_concept_ids)
-        }
+        payload = {"variables": [asdict(i) for i in variable_objects]}
         breakdown_concept_id = CohortServiceClient.strip_concept_prefix(
             prefixed_breakdown_concept_id
         )[0]
@@ -170,3 +172,45 @@ class CohortServiceClient:
         if isinstance(prefixed_concept_ids, str):
             prefixed_concept_ids = [prefixed_concept_ids]
         return list(map(lambda x: int(x.lstrip('ID_')), prefixed_concept_ids))
+
+    @staticmethod
+    def decode_concept_variable_json(
+        obj: Union[
+            List[Dict[str, Union[str, int, List[int]]]],
+            Dict[str, Union[str, int, List[int]]],
+        ]
+    ) -> List[Union[ConceptVariableObject, CustomDichotomousVariableObject]]:
+        """
+        JSON decoder for covariates/outcomes in new JSON format.
+        """
+        result = None
+        if isinstance(obj, list):
+            result = []
+            for item in obj:
+                if item['variable_type'] == "concept":
+                    val = ConceptVariableObject(**item)
+                    result.append(val)
+                elif item['variable_type'] == "custom_dichotomous":
+                    val = CustomDichotomousVariableObject(**item)
+                    result.append(val)
+                else:
+                    msg = (
+                        "Currently we only support 'concept' and 'custom_dichotomous' variable "
+                        "types, but you provided {}".format(item.get('variable_type'))
+                    )
+                    self.logger.error(msg)
+                    raise RuntimeError(msg)
+
+        elif isinstance(obj, dict):
+            result = {}
+            if obj['variable_type'] == "concept":
+                result = ConceptVariableObject(**obj)
+            elif obj['variable_type'] == "custom_dichotomous":
+                result = CustomDichotomousVariableObject(**obj)
+            else:
+                msg = (
+                    "Currently we only support 'concept' and 'custom_dichotomous' variable "
+                    "types, but you provided {}".format(obj.get('variable_type'))
+                )
+                raise RuntimeError(msg)
+        return result

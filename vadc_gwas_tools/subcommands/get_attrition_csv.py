@@ -3,6 +3,7 @@ breakdown CSV(s).
 
 @author: Kyle Hernandez <kmhernan@uchicago.edu>
 """
+import json
 from argparse import ArgumentParser, Namespace
 
 from vadc_gwas_tools.common.cohort_middleware import CohortServiceClient
@@ -36,10 +37,9 @@ class GetCohortAttritionTable(Subcommand):
             ),
         )
         parser.add_argument(
-            "--prefixed_concept_ids",
+            "--variables_json",
             required=True,
-            nargs="+",
-            help="Prefixed concept IDs",
+            help="Path to the JSON file containing the variable objects.",
         )
         parser.add_argument(
             "--prefixed_breakdown_concept_id",
@@ -83,6 +83,12 @@ class GetCohortAttritionTable(Subcommand):
             logger.info("Continuous phenotype Design...")
             logger.info(f"Cohort: {options.case_cohort_id}")
 
+        # Load JSON object
+        with open(options.variables_json, 'rt') as fh:
+            variables = json.load(
+                fh, object_hook=CohortServiceClient.decode_concept_variable_json
+            )
+
         # Client
         client = CohortServiceClient()
 
@@ -93,7 +99,7 @@ class GetCohortAttritionTable(Subcommand):
             options.source_id,
             options.case_cohort_id,
             case_csv,
-            options.prefixed_concept_ids,
+            variables,
             options.prefixed_breakdown_concept_id,
         )
 
@@ -105,7 +111,7 @@ class GetCohortAttritionTable(Subcommand):
                 options.source_id,
                 options.control_cohort_id,
                 control_csv,
-                options.prefixed_concept_ids,
+                variables,
                 options.prefixed_breakdown_concept_id,
             )
 
