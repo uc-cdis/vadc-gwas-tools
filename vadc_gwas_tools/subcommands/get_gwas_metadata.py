@@ -154,9 +154,12 @@ class GetGwasMetadata(Subcommand):
         )
 
         # Get concept variable data
-        concept_data = client.get_concept_descriptions(
-            options.source_id, [i.concept_id for i in concept_variables]
-        )
+        if concept_variables:
+            concept_data = client.get_concept_descriptions(
+                options.source_id, [i.concept_id for i in concept_variables]
+            )
+        else:
+            concept_data = []
 
         # Get custom dichotomous variable cohorts and metadata
         custom_dichotomous_cohort_metadata = (

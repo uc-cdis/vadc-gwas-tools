@@ -435,3 +435,75 @@ class GetGwasMetadataSubcommand_Main(GetGwasMetadataSubcommand_SharedObjects):
             )
         finally:
             cleanup_files([outpath, vjsonpath])
+
+    def test_main_case_control_params_no_covariates(self):
+        (_, outpath) = tempfile.mkstemp(suffix='.yaml')
+        (_, vjsonpath) = tempfile.mkstemp(suffix='.json')
+
+        args = self.get_mock_args(vjsonpath, outpath, case_control=True)
+
+        with open(vjsonpath, 'wt') as o:
+            json.dump([], o)
+
+        case_cohort_def = make_cohort_def(args.case_cohort_id, "CASE", "Fake")
+        control_cohort_def = make_cohort_def(args.control_cohort_id, "CONTROL", "Fake")
+
+        expected = {
+            "cohorts": {
+                "case_cohort": dataclasses.asdict(case_cohort_def),
+                "control_cohort": dataclasses.asdict(control_cohort_def),
+            },
+            "phenotype": {"concept_id": None, "concept_name": "CASE-CONTROL"},
+            "covariates": [],
+            "parameters": {
+                "n_population_pcs": args.n_pcs,
+                "maf_threshold": args.maf_threshold,
+                "imputation_score_cutoff": args.imputation_score_cutoff,
+                "hare_population": args.hare_population,
+            },
+        }
+
+        try:
+            with mock.patch.object(
+                CohortServiceClient, "get_cohort_definition"
+            ) as mock_cohort_def, mock.patch.object(
+                CohortServiceClient, "get_concept_descriptions"
+            ) as mock_concept_def, mock.patch.object(
+                MOD, "_get_custom_dichotomous_cohort_metadata"
+            ) as mock_get_custom_dichotomous:
+                mock_cohort_def.side_effect = [case_cohort_def, control_cohort_def]
+                # mock_concept_def.return_value = self.concept_defs
+
+                MOD._format_metadata = mock.MagicMock(return_value=expected)
+                mock_get_custom_dichotomous.return_value = {}
+                MOD.main(args)
+
+                self.assertEqual(mock_cohort_def.call_count, 2)
+                mock_cohort_def.assert_has_calls(
+                    [mock.call(args.case_cohort_id), mock.call(args.control_cohort_id)]
+                )
+
+                mock_concept_def.assert_not_called()
+
+                mock_get_custom_dichotomous.assert_called_once()
+                name, _args, kwargs = mock_get_custom_dichotomous.mock_calls[0]
+                self.assertEqual([], _args[0])
+
+                MOD._format_metadata.assert_called_with(
+                    case_cohort_def,
+                    control_cohort_def,
+                    [],
+                    [],
+                    {},
+                    None,
+                    args,
+                )
+
+            with open(outpath, 'r') as fh:
+                res = yaml.safe_load(fh)
+
+            self.assertEqual(
+                json.dumps(res, sort_keys=True), json.dumps(expected, sort_keys=True)
+            )
+        finally:
+            cleanup_files([outpath, vjsonpath])
