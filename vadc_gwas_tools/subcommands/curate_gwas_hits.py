@@ -135,14 +135,14 @@ class CurateGwasHits(Subcommand):
 
     @classmethod
     def _process_top_hits(
-        top_hits_heap: TopHitsHeap, header: List[str], top_hits_ofh: TextIO
+        cls, top_hits_heap: TopHitsHeap, header: List[str], top_hits_ofh: TextIO
     ) -> None:
         """
         Sorts the top hits object and writes out to CSV.
         """
         writer = csv.writer(top_hits_ofh)
         writer.writerow(header)
-        for item in sorted(stack._items, reverse=True):
+        for item in sorted(top_hits_heap._items, reverse=True):
             row = [item.item.get(i, '') for i in header]
             writer.writerow(row)
 
