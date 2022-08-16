@@ -33,7 +33,7 @@ class TopHitsHeap:
         if len(self._items) < self.n_hits:
             heapq.heappush(self._items, record)
             return self
-        elif len(self._items) == self.n_hits and not self._filled:
+        elif not self._filled:
             self._set_min_max()
             self._filled = True
 
