@@ -6,6 +6,7 @@ to extract:
 @author: Kyle Hernandez <kmhernan@uchicago.edu>
 """
 import csv
+import glob
 import gzip
 import os
 from argparse import ArgumentParser, Namespace

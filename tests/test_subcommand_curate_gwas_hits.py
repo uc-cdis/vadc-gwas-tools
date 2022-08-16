@@ -1,10 +1,13 @@
 """Tests for `vadc_gwas_tools.subcommands.CurateGwasHits`."""
 import csv
+import glob
 import gzip
+import os
 import random
 import tempfile
 import unittest
 from io import StringIO
+from typing import NamedTuple
 
 from utils import captured_output, cleanup_files
 
@@ -102,3 +105,62 @@ class TestCurateGwasHits_process_top_hits(unittest.TestCase):
         self.assertEqual("1,5e-10", csv_records[1].rstrip())
         self.assertEqual("2,5e-8", csv_records[2].rstrip())
         self.assertEqual("3,0.01", csv_records[3].rstrip())
+
+
+class _mock_args(NamedTuple):
+    summary_stats_dir: str
+    pvalue_cutoff: float
+    top_n_hits: int
+    out_prefix: str
+
+
+class TestCurateGwasHits_main(unittest.TestCase):
+    def generate_test_csvs(self):
+        odir = tempfile.mkdtemp()
+        ofils = []
+        header = ['key', 'Score.pval']
+
+        for i in range(5):
+            (_, opath) = tempfile.mkstemp(dir=odir, text=True, suffix=".csv.gz")
+            ofils.append(opath)
+            with gzip.open(opath, 'wt') as o:
+                writer = csv.writer(o)
+                writer.writerow(header)
+                if i == 3:
+                    writer.writerow([f"{i}.0", "0.01"])
+                    writer.writerow([f"{i}.1", "5e-10"])
+                    writer.writerow([f"{i}.2", "5e-8"])
+                else:
+                    for j in range(3):
+                        row = [f"{i}.{j}", str(random.uniform(1e-5, 0.05))]
+                        writer.writerow(row)
+        return odir, ofils
+
+    def test_main(self):
+        odir = tempfile.mkdtemp()
+        input_dir, input_csvs = self.generate_test_csvs()
+        args = _mock_args(
+            summary_stats_dir=input_dir,
+            pvalue_cutoff=1e-5,
+            top_n_hits=3,
+            out_prefix=os.path.join(odir, 'test'),
+        )
+
+        try:
+            MOD.main(args)
+            out_files = glob.glob(os.path.join(odir, 'test*'))
+            self.assertEqual(2, len(out_files))
+        finally:
+            out_files = glob.glob(os.path.join(odir, 'test*'))
+            cleanup_files(out_files + input_csvs)
+
+    def test_main_raise_exception(self):
+        args = _mock_args(
+            summary_stats_dir="/fake/path",
+            pvalue_cutoff=1e-5,
+            top_n_hits=3,
+            out_prefix="test",
+        )
+
+        with self.assertRaises(RuntimeError) as _:
+            MOD.main(args)
