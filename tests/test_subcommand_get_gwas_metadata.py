@@ -29,6 +29,8 @@ class MockArgs(NamedTuple):
     maf_threshold: float
     imputation_score_cutoff: float
     hare_population: str
+    pvalue_cutoff: Optional[float]
+    top_n_hits: Optional[int]
     output: str
 
 
@@ -148,6 +150,8 @@ class GetGwasMetadataSubcommand_SharedObjects(unittest.TestCase):
             maf_threshold=0.01,
             imputation_score_cutoff=0.3,
             hare_population="Hispanic",
+            pvalue_cutoff=5e-8,
+            top_n_hits=100,
             output=output,
         )
 
@@ -195,6 +199,8 @@ class GetGwasMetadataSubcommand_FormatMetadata(GetGwasMetadataSubcommand_SharedO
                 "maf_threshold": args.maf_threshold,
                 "imputation_score_cutoff": args.imputation_score_cutoff,
                 "hare_population": args.hare_population,
+                "pvalue_cutoff": 5e-8,
+                "top_n_hits": 100,
             },
         }
 
@@ -233,6 +239,8 @@ class GetGwasMetadataSubcommand_FormatMetadata(GetGwasMetadataSubcommand_SharedO
                 "maf_threshold": args.maf_threshold,
                 "imputation_score_cutoff": args.imputation_score_cutoff,
                 "hare_population": args.hare_population,
+                "pvalue_cutoff": 5e-8,
+                "top_n_hits": 100,
             },
         }
 
@@ -271,6 +279,8 @@ class GetGwasMetadataSubcommand_Main(GetGwasMetadataSubcommand_SharedObjects):
             maf_threshold=0.01,
             imputation_score_cutoff=0.3,
             hare_population="Hispanic",
+            pvalue_cutoff=5e-8,
+            top_n_hits=100,
             output="/some/path",
         )
 
@@ -307,6 +317,8 @@ class GetGwasMetadataSubcommand_Main(GetGwasMetadataSubcommand_SharedObjects):
                 "maf_threshold": args.maf_threshold,
                 "imputation_score_cutoff": args.imputation_score_cutoff,
                 "hare_population": args.hare_population,
+                "pvalue_cutoff": 5e-8,
+                "top_n_hits": 100,
             },
         }
 
@@ -384,6 +396,8 @@ class GetGwasMetadataSubcommand_Main(GetGwasMetadataSubcommand_SharedObjects):
                 "maf_threshold": args.maf_threshold,
                 "imputation_score_cutoff": args.imputation_score_cutoff,
                 "hare_population": args.hare_population,
+                "pvalue_cutoff": 5e-8,
+                "top_n_hits": 100,
             },
         }
 
@@ -460,6 +474,8 @@ class GetGwasMetadataSubcommand_Main(GetGwasMetadataSubcommand_SharedObjects):
                 "maf_threshold": args.maf_threshold,
                 "imputation_score_cutoff": args.imputation_score_cutoff,
                 "hare_population": args.hare_population,
+                "pvalue_cutoff": 5e-8,
+                "top_n_hits": 100,
             },
         }
 
