@@ -87,6 +87,18 @@ class GetGwasMetadata(Subcommand):
             help="Selected HARE population for the GWAS analysis.",
         )
         parser.add_argument(
+            "--pvalue_cutoff",
+            default=5e-8,
+            type=float,
+            help="P-value cutoff to use for extracting 'significant' hits. [5e-8]",
+        )
+        parser.add_argument(
+            "--top_n_hits",
+            default=100,
+            type=int,
+            help="Number of top hits to extract, regardless of P-value. [100]",
+        )
+        parser.add_argument(
             "-o",
             "--output",
             required=True,
@@ -293,6 +305,8 @@ class GetGwasMetadata(Subcommand):
             "maf_threshold": options.maf_threshold,
             "imputation_score_cutoff": options.imputation_score_cutoff,
             "hare_population": options.hare_population,
+            "pvalue_cutoff": options.pvalue_cutoff,
+            "top_n_hits": options.top_n_hits,
         }
 
         # Put it all together and return dict
