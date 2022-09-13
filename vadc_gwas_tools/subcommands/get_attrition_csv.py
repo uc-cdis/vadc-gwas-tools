@@ -6,7 +6,10 @@ breakdown CSV(s).
 import json
 from argparse import ArgumentParser, Namespace
 
-from vadc_gwas_tools.common.cohort_middleware import CohortServiceClient
+from vadc_gwas_tools.common.cohort_middleware import (
+    CohortServiceClient,
+    CustomDichotomousVariableObject,
+)
 from vadc_gwas_tools.common.logger import Logger
 from vadc_gwas_tools.subcommands import Subcommand
 
@@ -88,6 +91,16 @@ class GetCohortAttritionTable(Subcommand):
             variables = json.load(
                 fh, object_hook=CohortServiceClient.decode_concept_variable_json
             )
+            # if case/control, add an extra filter on top of the given variables
+            # to ensure that any person that belongs to _both_ cohorts
+            # [options.case_cohort_id, options.control_cohort_id] also gets filtered out:
+            if options.control_cohort_id is not None:
+                extraCaseControlOverlapFilter = CustomDichotomousVariableObject(
+                    variable_type="custom_dichotomous",
+                    cohort_ids=[options.case_cohort_id, options.control_cohort_id],
+                    provided_name="Added filter to remove case/control overlap (if any)",  # this description will appear in the attrition table
+                )
+                variables.insert(0, extraCaseControlOverlapFilter)
 
         # Client
         client = CohortServiceClient()
