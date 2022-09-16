@@ -97,7 +97,7 @@ class GetCohortAttritionTable(Subcommand):
             if options.control_cohort_id is not None:
                 extraCaseControlOverlapFilter = CustomDichotomousVariableObject(
                     variable_type="custom_dichotomous",
-                    cohort_ids=[options.case_cohort_id, options.control_cohort_id],
+                    cohort_ids=[options.control_cohort_id, options.case_cohort_id],
                     provided_name="Added filter to remove case/control overlap (if any)",  # this description will appear in the attrition table
                 )
                 variables.insert(0, extraCaseControlOverlapFilter)
