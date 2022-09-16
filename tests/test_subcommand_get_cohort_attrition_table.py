@@ -7,7 +7,10 @@ from unittest import mock
 
 from utils import cleanup_files
 
-from vadc_gwas_tools.common.cohort_middleware import CohortServiceClient
+from vadc_gwas_tools.common.cohort_middleware import (
+    CohortServiceClient,
+    CustomDichotomousVariableObject,
+)
 from vadc_gwas_tools.subcommands import GetCohortAttritionTable as MOD
 
 
@@ -55,7 +58,7 @@ class TestGetCohortAttritionTableSubcommand(unittest.TestCase):
             ) as mock_json:
                 instance = mock_client.return_value
                 instance.get_attrition_breakdown_csv.return_value = None
-                mock_json.load.return_value = variable_objects
+                mock_json.load.return_value = variable_objects[:]
                 MOD.main(args)
                 instance.get_attrition_breakdown_csv.assert_called_once()
                 instance.get_attrition_breakdown_csv.assert_called_with(
@@ -86,6 +89,17 @@ class TestGetCohortAttritionTableSubcommand(unittest.TestCase):
                 variable_list_str,
                 object_hook=CohortServiceClient.decode_concept_variable_json,
             )
+            # Add new variable that includes the inserted custom dichotomous
+            # to handle overlaps and a *copy* of the variable_objects so the
+            # test is more clear that it is handling this. Otherwise the
+            # side effects of the insert in the command will mutate this variable
+            variable_objects_with_case_control = [
+                CustomDichotomousVariableObject(
+                    variable_type="custom_dichotomous",
+                    cohort_ids=[args.control_cohort_id, args.case_cohort_id],
+                    provided_name="Added filter to remove case/control overlap (if any)",
+                )
+            ] + variable_objects[:]
 
             with mock.patch(
                 "vadc_gwas_tools.subcommands.get_attrition_csv.CohortServiceClient"
@@ -105,14 +119,14 @@ class TestGetCohortAttritionTableSubcommand(unittest.TestCase):
                             args.source_id,
                             args.case_cohort_id,
                             f"{args.output_prefix}.case_cohort.attrition_table.csv",
-                            variable_objects,
+                            variable_objects_with_case_control,
                             args.prefixed_breakdown_concept_id,
                         ),
                         mock.call(
                             args.source_id,
                             args.control_cohort_id,
                             f"{args.output_prefix}.control_cohort.attrition_table.csv",
-                            variable_objects,
+                            variable_objects_with_case_control,
                             args.prefixed_breakdown_concept_id,
                         ),
                     ]
