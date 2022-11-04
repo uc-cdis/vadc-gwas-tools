@@ -14,6 +14,7 @@ from vadc_gwas_tools.subcommands import (
     GetCohortAttritionTable,
     GetCohortPheno,
     GetGwasMetadata,
+    ProcessInputVariables,
     SplitFilenameByChr,
 )
 
@@ -42,6 +43,7 @@ def main(args=None, extra_subparser=None) -> None:
     subparsers.required = True
 
     # Subcommands
+    ProcessInputVariables.add(subparsers=subparsers)
     CreateIndexdRecord.add(subparsers=subparsers)
     CurateGwasHits.add(subparsers=subparsers)
     FilterSegments.add(subparsers=subparsers)
