@@ -54,22 +54,8 @@ class GetCohortPheno(Subcommand):
         logger = Logger.get_logger(cls.__tool_name__())
         logger.info(cls.__get_description__())
 
-        is_case_control = False
-
-        if options.control_cohort_id is not None:
-            assert (
-                options.case_cohort_id != options.control_cohort_id
-            ), f"Case cohort ID can't be the same as the Control cohort ID: {options.case_cohort_id} {options.control_cohort_id}"
-            is_case_control = True
-
-            logger.info("Case-Control Design...")
-            logger.info(
-                f"Case Cohort: {options.case_cohort_id}; Control Cohort: {options.control_cohort_id}"
-            )
-
-        else:
-            logger.info("Continuous phenotype Design...")
-            logger.info(f"Cohort: {options.case_cohort_id}")
+        logger.info("GWAS unified workflow design...")
+        logger.info(f"Source Population Cohort: {options.source_population_cohort}")
 
         # Load JSON object
         with open(options.variables_json, "rt") as fh:
