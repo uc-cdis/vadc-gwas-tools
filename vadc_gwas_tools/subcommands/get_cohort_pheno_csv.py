@@ -100,6 +100,6 @@ class GetCohortPheno(Subcommand):
         return (
             "Gets the CSV file used in the GENESIS workflow for the provided cohorts "
             "and phenotype concept IDs. --variable is a json file that includes both "
-            "concept variable and custom dichotomous variable Set the GEN3ENVIRONMENT"
+            "concept variable and custom dichotomous variable. Set the GEN3ENVIRONMENT"
             "environment variable if the internal URL for a service utilizes an environment other than 'default'."
         )
