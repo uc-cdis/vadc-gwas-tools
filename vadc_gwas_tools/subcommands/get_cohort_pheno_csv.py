@@ -31,6 +31,7 @@ class GetCohortPheno(Subcommand):
         parser.add_argument(
             "--source_population_cohort",
             required=True,
+            type=int,
             help="Integer ID of the source population cohort",
         )
         parser.add_argument(
