@@ -88,20 +88,19 @@ class GetCohortAttritionTable(Subcommand):
             variables = json.load(
                 fh, object_hook=CohortServiceClient.decode_concept_variable_json
             )
-            # if case/control, add an extra filter on top of the given variables
-            # to ensure that any person that belongs to _both_ cohorts
-            # [options.case_cohort_id, options.control_cohort_id] also gets filtered out:
+            # Sanity check if the first element
+            # of variables list is the outcome
             assert outcome_val == variables[0], (
-                "First element of variable list is not equal to the outcome variable object"
-                f"First element of variables: {variables[0].__annotations__}"
-                f"Outcome: {outcome_val.__annotations__}"
+                "First element of variable list is not equal to the outcome\n"
+                f"First element of variables: {variables[0]}\n"
+                f"Outcome: {outcome_val}"
             )
 
         # Client
         client = CohortServiceClient()
 
         # Call attrition table
-        if not is_case_control: # Continuous workflow
+        if not is_case_control:  # Continuous workflow
             # log info
             logger.info("Continuous Design...")
             logger.info(
@@ -110,7 +109,7 @@ class GetCohortAttritionTable(Subcommand):
                 )
             )
             # Call cohort-middleware for continuous workflow
-            continuous_csv = f"{options.output_prefix}.case_cohort.attrition_table.csv"   
+            continuous_csv = f"{options.output_prefix}.source_cohort.attrition_table.csv"
             logger.info(f"Writing continuous workflow attrition table to {continuous_csv}")
             client.get_attrition_breakdown_csv(
                 options.source_id,
@@ -120,7 +119,7 @@ class GetCohortAttritionTable(Subcommand):
                 options.prefixed_breakdown_concept_id,
             )
 
-        else:
+        else:  # Case-control workflow
             # logger info
             logger.info("Case-Control Design...")
             logger.info(
