@@ -82,7 +82,7 @@ class GetCohortAttritionTable(Subcommand):
             }
             logger.error(msg)
             raise RuntimeError(msg)
-        
+
         # Load JSON object
         with open(options.variables_json, 'rt') as fh:
             variables = json.load(
@@ -91,11 +91,12 @@ class GetCohortAttritionTable(Subcommand):
             # if case/control, add an extra filter on top of the given variables
             # to ensure that any person that belongs to _both_ cohorts
             # [options.case_cohort_id, options.control_cohort_id] also gets filtered out:
-            assert outcome_val ==  variables[0], 
+            assert outcome_val == variables[0], (
                 "First element of variable list is not equal to the outcome variable object"
                 f"First element of variables: {variables[0].__annotations__}"
                 f"Outcome: {outcome_val.__annotations__}"
-        
+            )
+
         # Client
         client = CohortServiceClient()
 
@@ -117,7 +118,7 @@ class GetCohortAttritionTable(Subcommand):
                 continuous_csv,
                 variables,
                 options.prefixed_breakdown_concept_id,
-            ) 
+            )
 
         else:
             # logger info
