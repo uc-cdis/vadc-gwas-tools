@@ -36,7 +36,7 @@ class GetCohortAttritionTable(Subcommand):
             "--outcome",
             required=True,
             type=str,
-            help="JSON formatted string of outcome variable."
+            help="JSON formatted string of outcome variable.",
         )
         parser.add_argument(
             "--variables_json",
@@ -66,25 +66,19 @@ class GetCohortAttritionTable(Subcommand):
 
         is_case_control = False
 
-        outcome_json = json.loads(options.outcome)
-        if outcome_json['variable_type'] == "concept":
-            outcome_val = ConceptVariableObject(**outcome_json)
-        elif outcome_json['variable_type'] == "custom_dichotomous":
-            outcome_val = CustomDichotomousVariableObject(**outcome_json)
+        outcome_val = json.loads(
+            options.outcome,
+            object_hook=CohortServiceClient.decode_concept_variable_json,
+        )
+        if isinstance(outcome_val, CustomDichotomousVariableObject):
             is_case_control = True
-            outcome_control_cohort = outcome_val.cohort_ids[0]
-            outcome_case_cohort = outcome_val.cohort_ids[1]
+            outcome_control_cohort, outcome_case_cohort = outcome_val.cohort_ids
             outcome_case_control_provided_name = outcome_val.provided_name
         else:
-            msg = {
-                "Currently we only support 'concept' and 'custom_dichotomous' variable "
-                "types, but you provided {}".format(outcome_json.get('variable_type'))
-            }
-            logger.error(msg)
-            raise RuntimeError(msg)
+            pass
 
         # Load JSON object
-        with open(options.variables_json, 'rt') as fh:
+        with open(options.variables_json, "rt") as fh:
             variables = json.load(
                 fh, object_hook=CohortServiceClient.decode_concept_variable_json
             )
@@ -104,13 +98,15 @@ class GetCohortAttritionTable(Subcommand):
             # log info
             logger.info("Continuous Design...")
             logger.info(
-                (
-                    f"Source Population Cohort: {options.source_population_cohort}; "
-                )
+                (f"Source Population Cohort: {options.source_population_cohort}; ")
             )
             # Call cohort-middleware for continuous workflow
-            continuous_csv = f"{options.output_prefix}.source_cohort.attrition_table.csv"
-            logger.info(f"Writing continuous workflow attrition table to {continuous_csv}")
+            continuous_csv = (
+                f"{options.output_prefix}.source_cohort.attrition_table.csv"
+            )
+            logger.info(
+                f"Writing continuous workflow attrition table to {continuous_csv}"
+            )
             client.get_attrition_breakdown_csv(
                 options.source_id,
                 options.source_population_cohort,
@@ -130,18 +126,17 @@ class GetCohortAttritionTable(Subcommand):
                 )
             )
 
+            control_variable_list, case_variable_list = cls._get_case_control_variable_lists_(
+                variables,
+                outcome_val,
+                options.source_population_cohort
+            )
+
             # Call cohort-middleware for control cohort
             control_csv = f"{options.output_prefix}.control_cohort.attrition_table.csv"
-            control_variable_list = variables[:]
-            # use the case cohort id and source cohort id to get control counts only
-            control_call_cohort_ids = [outcome_case_cohort, options.source_population_cohort]
-            new_control_dvar = CustomDichotomousVariableObject(
-                variable_type="custom_dichotomous",
-                cohort_ids=control_call_cohort_ids,
-                provided_name="Control cohort only"
+            logger.info(
+                f"Writing case-control control cohort attrition table to {control_csv}"
             )
-            control_variable_list.insert(1, new_control_dvar)
-            logger.info(f"Writing case-control control cohort attrition table to {control_csv}")
             client.get_attrition_breakdown_csv(
                 options.source_id,
                 options.source_population_cohort,
@@ -152,16 +147,9 @@ class GetCohortAttritionTable(Subcommand):
 
             # Call cohort-middleware for case cohort
             case_csv = f"{options.output_prefix}.case_cohort.attrition_table.csv"
-            case_variable_list = variables[:]
-            # use the control cohort id and source cohort id to get case counts only
-            case_call_cohort_ids = [outcome_control_cohort, options.source_population_cohort]
-            new_case_dvar = CustomDichotomousVariableObject(
-                variable_type="custom_dichotomous",
-                cohort_ids=case_call_cohort_ids,
-                provided_name="Case cohort only"
+            logger.info(
+                f"Writing case-control case cohort attrition table to {case_csv}"
             )
-            case_variable_list.insert(1, new_case_dvar)
-            logger.info(f"Writing case-control case cohort attrition table to {case_csv}")
             client.get_attrition_breakdown_csv(
                 options.source_id,
                 options.source_population_cohort,
@@ -169,6 +157,39 @@ class GetCohortAttritionTable(Subcommand):
                 case_variable_list,
                 options.prefixed_breakdown_concept_id,
             )
+
+    @classmethod
+    def _get_case_control_variable_lists_(
+        cls,
+        variables_list: List[
+            Union[ConceptVariableObject, CustomDichotomousVariableObject]
+        ],
+        outcome: CustomDichotomousVariableObject,
+        source_population_cohort: int,
+    ) -> Tuple[List[Union[ConceptVariableObject, CustomDichotomousVariableObject]]]:
+        """
+        Create two new variable lists for attrition table
+        calling in case-control use case.
+        """
+        case_variable_list = variables_list[:]
+        control_variable_list = variables_list[:]
+        # use the case cohort id and source cohort id to get control counts only
+        control_call_cohort_ids = [outcome.cohort_ids[1], source_population_cohort]
+        # use the control cohort id and source cohort id to get case counts only
+        case_call_cohort_ids = [outcome.cohort_ids[0], source_population_cohort]
+        new_control_dvar = CustomDichotomousVariableObject(
+            variable_type="custom_dichotomous",
+            cohort_ids=control_call_cohort_ids,
+            provided_name="Control cohort only",
+        )
+        new_case_dvar = CustomDichotomousVariableObject(
+            variable_type="custom_dichotomous",
+            cohort_ids=case_call_cohort_ids,
+            provided_name="Case cohort only",
+        )
+        control_variable_list.insert(1, new_control_dvar)
+        case_variable_list.insert(1, new_case_dvar)
+        return control_variable_list, case_variable_list
 
     @classmethod
     def __get_description__(cls) -> str:
