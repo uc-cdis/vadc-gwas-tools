@@ -5,12 +5,14 @@ breakdown CSV(s).
 """
 import json
 from argparse import ArgumentParser, Namespace
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from vadc_gwas_tools.common.cohort_middleware import (
     CohortServiceClient,
     ConceptVariableObject,
     CustomDichotomousVariableObject,
 )
+
 from vadc_gwas_tools.common.logger import Logger
 from vadc_gwas_tools.subcommands import Subcommand
 
