@@ -297,16 +297,20 @@ class GetGwasMetadata(Subcommand):
         # Outcome section
         if isinstance(outcome, ConceptVariableObject):  # continuous workflow
             outcome_section = dataclasses.asdict(outcome_data)
-            outcome_section["type"] = "CONTINUOUS"
+            #outcome_section["type"] = "CONTINUOUS"
+            # insert the workflow type as the first element
+            outcome_section_items = list(outcome_section.items())
+            outcome_section_items.insert(0, ("type", "CONTINUOUS"))
+            outcome_section = dict(outcome_Section_items)
         else:  # case-control workflow 
             outcome_section = {
+                "type": "CASE-CONTROL",
+                "concept_name": outcome.provided_name,
                 "concept_cohorts" : {
                     "case_cohort": dataclasses.asdict(case_cohort_def),
                     "control_cohort": dataclasses.asdict(control_cohort_def)
                 }
             }
-            outcome_section["type"] = "CASE-CONTROL"
-            outcome_section["concept_name"] = outcome.provided_name
 
         # Clinical covariables section
         covariates = []
