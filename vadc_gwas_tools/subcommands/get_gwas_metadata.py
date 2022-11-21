@@ -107,7 +107,7 @@ class GetGwasMetadata(Subcommand):
 
         is_case_control = False
 
-        outcome = josn.loads(
+        outcome = json.loads(
             options.outcome,
             object_hook=CohortServiceClient.decode_concept_variable_json,
         )
