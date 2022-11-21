@@ -209,7 +209,7 @@ class GetGwasMetadata(Subcommand):
         logger.info("Writing GWAS metadata...")
         logger.info((f"Output: {options.output} "))
         with open(options.output, "w") as o:
-            yaml.dump(formatted_metadata, o, default_flow_style=False)
+            yaml.dump(formatted_metadata, o, default_flow_style=False, sort_keys=False)
 
     @classmethod
     def _get_variable_lists(
