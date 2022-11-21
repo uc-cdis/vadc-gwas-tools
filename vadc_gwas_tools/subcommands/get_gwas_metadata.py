@@ -296,7 +296,7 @@ class GetGwasMetadata(Subcommand):
             outocme_section["type"] = "CONTINUOUS"
         else:  # case-control workflow 
             outcome_section = {
-                "concept_cohorts" = {
+                "concept_cohorts" : {
                     "case_cohort": dataclasses.asdict(case_cohort_def),
                     "control_cohort": dataclasses.asdict(control_cohort_def)
                 }
