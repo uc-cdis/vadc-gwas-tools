@@ -186,21 +186,21 @@ class GetGwasMetadata(Subcommand):
         if is_case_control:
             formatted_metadata = cls._format_metadata(
                 source_cohort_def=source_cohort_def,
-                case_cohort_def=case_cohort_def,
-                control_cohort_def=control_cohort_def,
                 outcome=outcome,
                 concept_data=concept_data,
                 custom_dichotomous_variables=custom_dichotomous_variables,
-                custom_dichotomous_cohort_metadata=custom_dichotomous_cohort_metadata
+                custom_dichotomous_cohort_metadata=custom_dichotomous_cohort_metadata,
+                case_cohort_def=case_cohort_def,
+                control_cohort_def=control_cohort_def
             )
         else:
             formatted_metadata = cls._format_metadata(
                 source_cohort_def=source_cohort_def,
                 outcome=outcome,
-                outcome_data=outcome_data,
                 concept_data=concept_data,
                 custom_dichotomous_variables=custom_dichotomous_variables,
-                custom_dichotomous_cohort_metadata=custom_dichotomous_cohort_metadata
+                custom_dichotomous_cohort_metadata=custom_dichotomous_cohort_metadata,
+                outcome_data=outcome_data
             )
 
         # Export metadata
@@ -267,17 +267,16 @@ class GetGwasMetadata(Subcommand):
     def _format_metadata(
         cls,
         source_cohort_def: CohortDefinitionResponse,
-        # case_cohort_def and control_cohort_def needed in case-control case
-        case_cohort_def: Optional[CohortDefinitionResponse] = None,
-        control_cohort_def: Optional[CohortDefinitionResponse] = None,
         # outcome provides outcome.provded_name in case-control case
         outcome: Union[CustomDichotomousVariableObject, ConceptVariableObject],
-        # outcome_data provides concept metadata in continuous case
-        outcome_data: Optional[ConceptDescriptionResponse] = None,
         concept_data: List[ConceptDescriptionResponse],
         custom_dichotomous_variables: List[CustomDichotomousVariableObject],
         custom_dichotomous_cohort_metadata: Dict[int, CohortDefinitionResponse],
-
+        # case_cohort_def and control_cohort_def needed in case-control case
+        case_cohort_def: Optional[CohortDefinitionResponse] = None,
+        control_cohort_def: Optional[CohortDefinitionResponse] = None,
+        # outcome_data provides concept metadata in continuous case
+        outcome_data: Optional[ConceptDescriptionResponse] = None,
     ) -> Dict[str, Union[List[Dict[str, str]], Dict[str, Any]]]:
         # source cohort section
         source_cohort = dataclasses.asdict(source_cohort_def)
