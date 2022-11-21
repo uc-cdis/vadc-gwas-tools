@@ -191,7 +191,8 @@ class GetGwasMetadata(Subcommand):
                 custom_dichotomous_variables=custom_dichotomous_variables,
                 custom_dichotomous_cohort_metadata=custom_dichotomous_cohort_metadata,
                 case_cohort_def=case_cohort_def,
-                control_cohort_def=control_cohort_def
+                control_cohort_def=control_cohort_def,
+                options=options
             )
         else:
             formatted_metadata = cls._format_metadata(
@@ -200,7 +201,8 @@ class GetGwasMetadata(Subcommand):
                 concept_data=concept_data,
                 custom_dichotomous_variables=custom_dichotomous_variables,
                 custom_dichotomous_cohort_metadata=custom_dichotomous_cohort_metadata,
-                outcome_data=outcome_data
+                outcome_data=outcome_data,
+                options=options
             )
 
         # Export metadata
@@ -277,6 +279,7 @@ class GetGwasMetadata(Subcommand):
         control_cohort_def: Optional[CohortDefinitionResponse] = None,
         # outcome_data provides concept metadata in continuous case
         outcome_data: Optional[ConceptDescriptionResponse] = None,
+        options: Namespace,
     ) -> Dict[str, Union[List[Dict[str, str]], Dict[str, Any]]]:
         # source cohort section
         source_cohort = dataclasses.asdict(source_cohort_def)
