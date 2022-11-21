@@ -230,7 +230,7 @@ class GetGwasMetadata(Subcommand):
         concept_variables = []
         custom_dichotomous_variables = []
         for variable in variable_objects[1:]:  # skip the first item, aka, outcome
-            if instance(variable, ConceptVariableObject):
+            if isinstance(variable, ConceptVariableObject):
                 # check if the concept variable is the hare population
                 if variable.concept_id != 2000007027:
                     concept_variables.append(variable)
