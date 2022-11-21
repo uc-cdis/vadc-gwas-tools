@@ -297,7 +297,7 @@ class GetGwasMetadata(Subcommand):
         # Outcome section
         if isinstance(outcome, ConceptVariableObject):  # continuous workflow
             outcome_section = dataclasses.asdict(outcome_data)
-            outocme_section["type"] = "CONTINUOUS"
+            outcome_section["type"] = "CONTINUOUS"
         else:  # case-control workflow 
             outcome_section = {
                 "concept_cohorts" : {
