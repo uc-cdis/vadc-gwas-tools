@@ -178,8 +178,6 @@ class GetGwasMetadata(Subcommand):
                 custom_dichotomous_variables, client
             )
         )
-        logger.info(custom_dichotomous_variables)
-        logger.info(custom_dichotomous_cohort_metadata)
 
         # Format all metadata
         logger.info("Formatting GWAS metadata...")
@@ -204,7 +202,7 @@ class GetGwasMetadata(Subcommand):
                 custom_dichotomous_cohort_metadata=custom_dichotomous_cohort_metadata,
                 outcome_data=outcome_data
             )
-        logger.info(formatted_metadata)
+
         # Export metadata
         logger.info("Writing GWAS metadata...")
         logger.info((f"Output: {options.output} "))
@@ -297,8 +295,7 @@ class GetGwasMetadata(Subcommand):
         # Outcome section
         if isinstance(outcome, ConceptVariableObject):  # continuous workflow
             outcome_section = dataclasses.asdict(outcome_data)
-            #outcome_section["type"] = "CONTINUOUS"
-            # insert the workflow type as the first element
+            # Insert the workflow type as the first element
             outcome_section_items = list(outcome_section.items())
             outcome_section_items.insert(0, ("type", "CONTINUOUS"))
             outcome_section = dict(outcome_section_items)
