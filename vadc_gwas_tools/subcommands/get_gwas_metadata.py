@@ -335,7 +335,7 @@ class GetGwasMetadata(Subcommand):
         Description of tool.
         """
         return (
-            "Generates a metadata file based on the GWAS variables, cohorts,
+            "Generates a metadata file based on the GWAS variables, cohorts,"
             "and parameters used in the workflow. --outcome, a json formatted"
             "str, and --source_population_cohort are required for both "
             "contunuous and case-control workflows. Set the GEN3_ENVIRONMENT"
