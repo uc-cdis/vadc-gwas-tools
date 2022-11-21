@@ -185,24 +185,24 @@ class GetGwasMetadata(Subcommand):
         logger.info("Formatting GWAS metadata...")
         if is_case_control:
             formatted_metadata = cls._format_metadata(
+                options=options,
                 source_cohort_def=source_cohort_def,
                 outcome=outcome,
                 concept_data=concept_data,
                 custom_dichotomous_variables=custom_dichotomous_variables,
                 custom_dichotomous_cohort_metadata=custom_dichotomous_cohort_metadata,
                 case_cohort_def=case_cohort_def,
-                control_cohort_def=control_cohort_def,
-                options=options
+                control_cohort_def=control_cohort_def
             )
         else:
             formatted_metadata = cls._format_metadata(
+                options=options,
                 source_cohort_def=source_cohort_def,
                 outcome=outcome,
                 concept_data=concept_data,
                 custom_dichotomous_variables=custom_dichotomous_variables,
                 custom_dichotomous_cohort_metadata=custom_dichotomous_cohort_metadata,
-                outcome_data=outcome_data,
-                options=options
+                outcome_data=outcome_data
             )
 
         # Export metadata
@@ -268,6 +268,7 @@ class GetGwasMetadata(Subcommand):
     @classmethod
     def _format_metadata(
         cls,
+        options: Namespace,
         source_cohort_def: CohortDefinitionResponse,
         # outcome provides outcome.provded_name in case-control case
         outcome: Union[CustomDichotomousVariableObject, ConceptVariableObject],
@@ -279,7 +280,6 @@ class GetGwasMetadata(Subcommand):
         control_cohort_def: Optional[CohortDefinitionResponse] = None,
         # outcome_data provides concept metadata in continuous case
         outcome_data: Optional[ConceptDescriptionResponse] = None,
-        options: Namespace,
     ) -> Dict[str, Union[List[Dict[str, str]], Dict[str, Any]]]:
         # source cohort section
         source_cohort = dataclasses.asdict(source_cohort_def)
