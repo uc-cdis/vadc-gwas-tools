@@ -301,7 +301,7 @@ class GetGwasMetadata(Subcommand):
             # insert the workflow type as the first element
             outcome_section_items = list(outcome_section.items())
             outcome_section_items.insert(0, ("type", "CONTINUOUS"))
-            outcome_section = dict(outcome_Section_items)
+            outcome_section = dict(outcome_section_items)
         else:  # case-control workflow 
             outcome_section = {
                 "type": "CASE-CONTROL",
