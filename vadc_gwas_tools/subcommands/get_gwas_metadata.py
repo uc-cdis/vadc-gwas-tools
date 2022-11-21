@@ -204,7 +204,7 @@ class GetGwasMetadata(Subcommand):
                 custom_dichotomous_cohort_metadata=custom_dichotomous_cohort_metadata,
                 outcome_data=outcome_data
             )
-
+        logger.info(formatted_metadata)
         # Export metadata
         logger.info("Writing GWAS metadata...")
         logger.info((f"Output: {options.output} "))
