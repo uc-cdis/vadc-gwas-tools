@@ -268,12 +268,12 @@ class GetGwasMetadata(Subcommand):
         cls,
         source_cohort_def: CohortDefinitionResponse,
         # case_cohort_def and control_cohort_def needed in case-control case
-        case_cohort_def: Optional[CohortDefinitionResponse],
-        control_cohort_def: Optional[CohortDefinitionResponse],
+        case_cohort_def: Optional[CohortDefinitionResponse] = None,
+        control_cohort_def: Optional[CohortDefinitionResponse] = None,
         # outcome provides outcome.provded_name in case-control case
         outcome: Union[CustomDichotomousVariableObject, ConceptVariableObject],
         # outcome_data provides concept metadata in continuous case
-        outcome_data: Optional[ConceptDescriptionResponse],
+        outcome_data: Optional[ConceptDescriptionResponse] = None,
         concept_data: List[ConceptDescriptionResponse],
         custom_dichotomous_variables: List[CustomDichotomousVariableObject],
         custom_dichotomous_cohort_metadata: Dict[int, CohortDefinitionResponse],
