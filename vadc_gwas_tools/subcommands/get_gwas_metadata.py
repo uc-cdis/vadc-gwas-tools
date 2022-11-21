@@ -178,6 +178,8 @@ class GetGwasMetadata(Subcommand):
                 custom_dichotomous_variables, client
             )
         )
+        logger.info(custom_dichotomous_variables)
+        logger.info(custom_dichotomous_cohort_metadata)
 
         # Format all metadata
         logger.info("Formatting GWAS metadata...")
