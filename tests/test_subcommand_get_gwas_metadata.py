@@ -18,13 +18,11 @@ from vadc_gwas_tools.common.cohort_middleware import (
 )
 from vadc_gwas_tools.subcommands import GetGwasMetadata as MOD
 
-
 class MockArgs(NamedTuple):
     source_id: int
-    case_cohort_id: int
-    control_cohort_id: Optional[int]
+    source_population_cohort: int
     variables_json: str
-    outcome_concept_id: Optional[str]
+    outcome: str
     n_pcs: int
     maf_threshold: float
     imputation_score_cutoff: float
@@ -58,24 +56,17 @@ class TestGetGwasMetadataSubcommand_GetVariableLists(unittest.TestCase):
     def test_get_variable_lists(self):
         variables = [
             ConceptVariableObject(variable_type="concept", concept_id=1001),
+            ConceptVariableObject(variable_type="concept", concept_id=1002),
             CustomDichotomousVariableObject(
                 variable_type="custom_dichotomous", cohort_ids=[1, 2]
             ),
         ]
-        concept_variables, custom_variables = MOD._get_variable_lists(variables, 1001)
-        self.assertEqual(concept_variables, [variables[0]])
-        self.assertEqual(custom_variables, [variables[1]])
-
-        outcome_variable = ConceptVariableObject(
-            variable_type="concept", concept_id=1002
-        )
-        concept_variables, custom_variables = MOD._get_variable_lists(variables, 1002)
-        self.assertEqual(concept_variables, [variables[0], outcome_variable])
-        self.assertEqual(custom_variables, [variables[1]])
-
-        concept_variables, custom_variables = MOD._get_variable_lists(variables, None)
-        self.assertEqual(concept_variables, [variables[0]])
-        self.assertEqual(custom_variables, [variables[1]])
+        outcome = ConceptVariableObject(
+            variable_type="concept", concept_id=1001
+            )
+        concept_variables, custom_variables = MOD._get_variable_lists(variables, outcome)
+        self.assertEqual(concept_variables, [variables[1]])
+        self.assertEqual(custom_variables, [variables[2]])
 
 
 class TestGetGwasMetadataSubcommand_CustomDichotomousCohortMetadata(unittest.TestCase):
@@ -117,20 +108,27 @@ class GetGwasMetadataSubcommand_SharedObjects(unittest.TestCase):
     def setUp(self):
         super().setUp()
         self.source_id = 2
-        self.case_cohort_id = 9
-        self.control_cohort_id = 10
-        self.outcome_concept_id = "1003"
+        self.source_population_cohort = 9
+        self.outcome_continuous_str = '{"variable_type": "concept", "concept_id": 1003}'
+        self.outcome_case_control_str = '{"variable_type":"custom_dichotomous", "cohort_ids":[1, 2], "provided_name":"test123"}'
+        self.outcome_continuous = json.loads(
+            self.outcome_continuous_str, object_hook=CohortServiceClient.decode_concept_variable_json
+        )
+        self.outcome_case_control = json.loads(
+            self.outcome_case_control_str, object_hook=CohortServiceClient.decode_concept_variable_json
+        )
         self.concept_defs = [
+            make_concept_def(1003, "ID_3", "Var C", "VALUE", "MVP Type"),
             make_concept_def(1001, "ID_1", "Var A", "VALUE", "MVP Type"),
             make_concept_def(1002, "ID_2", "Var B", "VALUE", "MVP Type"),
-            make_concept_def(1003, "ID_3", "Var C", "VALUE", "MVP Type"),
+            
         ]
         self.custom_dichotomous_variables = [
             CustomDichotomousVariableObject(
-                variable_type="custom_dichotomous", cohort_ids=[1, 2]
+                variable_type="custom_dichotomous", cohort_ids=[1, 2], provided_name="test123"
             ),
             CustomDichotomousVariableObject(
-                variable_type="custom_dichotomous", cohort_ids=[1, 4]
+                variable_type="custom_dichotomous", cohort_ids=[1, 4], provided_name="test456"
             ),
         ]
         self.custom_dichotomous_cohort_meta = {
@@ -139,13 +137,12 @@ class GetGwasMetadataSubcommand_SharedObjects(unittest.TestCase):
             4: make_cohort_def(4, "C", "Something C"),
         }
 
-    def get_mock_args(self, variables_json, output, case_control=False):
+    def get_mock_args(self, variables_json, outcome, output, case_control=False):
         return MockArgs(
             source_id=self.source_id,
-            case_cohort_id=self.case_cohort_id,
-            control_cohort_id=self.control_cohort_id if case_control else None,
+            source_population_cohort=self.source_population_cohort,
             variables_json=variables_json,
-            outcome_concept_id=self.outcome_concept_id if not case_control else None,
+            outcome=outcome,
             n_pcs=3,
             maf_threshold=0.01,
             imputation_score_cutoff=0.3,
@@ -181,18 +178,15 @@ class GetGwasMetadataSubcommand_SharedObjects(unittest.TestCase):
 
 class GetGwasMetadataSubcommand_FormatMetadata(GetGwasMetadataSubcommand_SharedObjects):
     def test_format_metadata_continuous(self):
-        args = self.get_mock_args("/path/fake.json", "/path/fake.yaml")
+        args = self.get_mock_args("/path/fake.json", self.outcome_continuous_str, "/path/fake.yaml")
 
-        case_cohort_def = make_cohort_def(args.case_cohort_id, "CASE", "Fake")
-        control_cohort_def = None
-
+        source_population_cohort_def = make_cohort_def(args.source_population_cohort, "SourceCohort", "Fake")
+        outcome_section = dataclasses.asdict(self.concept_defs[0])
+        outcome_section["type"] = "CONTINUOUS"
         expected = {
-            "cohorts": {
-                "case_cohort": dataclasses.asdict(case_cohort_def),
-                "control_cohort": None,
-            },
-            "phenotype": dataclasses.asdict(self.concept_defs[-1]),
-            "covariates": [dataclasses.asdict(i) for i in self.concept_defs[:-1]]
+            "source_cohort": dataclasses.asdict(source_population_cohort_def),
+            "outcome": outcome_section,
+            "covariates": [dataclasses.asdict(i) for i in self.concept_defs[1:]]
             + self.get_exp_custom_dichotomous(),
             "parameters": {
                 "n_population_pcs": args.n_pcs,
@@ -205,13 +199,13 @@ class GetGwasMetadataSubcommand_FormatMetadata(GetGwasMetadataSubcommand_SharedO
         }
 
         res = MOD._format_metadata(
-            case_cohort_def,
-            control_cohort_def,
-            self.concept_defs,
-            self.custom_dichotomous_variables,
-            self.custom_dichotomous_cohort_meta,
-            int(args.outcome_concept_id),
-            args,
+            options=args,
+            source_cohort_def=source_population_cohort_def,
+            outcome=self.outcome_continuous,
+            concept_data=self.concept_defs[1:],
+            custom_dichotomous_variables=self.custom_dichotomous_variables,
+            custom_dichotomous_cohort_metadata=self.custom_dichotomous_cohort_meta,
+            outcome_data=self.concept_defs[0]
         )
 
         self.assertEqual(
@@ -219,21 +213,28 @@ class GetGwasMetadataSubcommand_FormatMetadata(GetGwasMetadataSubcommand_SharedO
         )
 
     def test_format_metadata_case_control(self):
+        print(self.outcome_case_control)
         args = self.get_mock_args(
-            "/path/fake.json", "/path/fake.yaml", case_control=True
+            "/path/fake.json", self.outcome_case_control_str, "/path/fake.yaml", case_control=True
         )
-
-        case_cohort_def = make_cohort_def(args.case_cohort_id, "CASE", "Fake")
-        control_cohort_def = make_cohort_def(args.control_cohort_id, "CONTROL", "Fake")
+        source_population_cohort_def = make_cohort_def(args.source_population_cohort, "SourceCohort", "Fake")
+        outcome =  self.outcome_case_control
+        case_cohort_def = make_cohort_def(outcome.cohort_ids[1], "CASE", "Fake")
+        control_cohort_def = make_cohort_def(outcome.cohort_ids[0], "CONTROL", "Fake")
+        outcome_section = {
+            "type":"CASE-CONTROL",
+            "concept_name": "test123",
+            "concept_cohorts": {
+                "case_cohort": dataclasses.asdict(case_cohort_def),
+                "control_cohort": dataclasses.asdict(control_cohort_def)
+            }
+        }
 
         expected = {
-            "cohorts": {
-                "case_cohort": dataclasses.asdict(case_cohort_def),
-                "control_cohort": dataclasses.asdict(control_cohort_def),
-            },
-            "phenotype": {"concept_id": None, "concept_name": "CASE-CONTROL"},
+            "source_cohort": dataclasses.asdict(source_population_cohort_def),
+            "outcome": outcome_section,
             "covariates": [dataclasses.asdict(i) for i in self.concept_defs]
-            + self.get_exp_custom_dichotomous(),
+            + self.get_exp_custom_dichotomous()[1:],
             "parameters": {
                 "n_population_pcs": args.n_pcs,
                 "maf_threshold": args.maf_threshold,
@@ -245,13 +246,14 @@ class GetGwasMetadataSubcommand_FormatMetadata(GetGwasMetadataSubcommand_SharedO
         }
 
         res = MOD._format_metadata(
-            case_cohort_def,
-            control_cohort_def,
-            self.concept_defs,
-            self.custom_dichotomous_variables,
-            self.custom_dichotomous_cohort_meta,
-            args.outcome_concept_id,
-            args,
+            options=args,
+            source_cohort_def=source_population_cohort_def,
+            outcome=self.outcome_case_control,
+            concept_data=self.concept_defs,
+            custom_dichotomous_variables=self.custom_dichotomous_variables[1:],
+            custom_dichotomous_cohort_metadata=self.custom_dichotomous_cohort_meta,
+            case_cohort_def=case_cohort_def,
+            control_cohort_def=control_cohort_def,
         )
 
         self.assertEqual(
@@ -263,36 +265,16 @@ class GetGwasMetadataSubcommand_Main(GetGwasMetadataSubcommand_SharedObjects):
     def setUp(self):
         super().setUp()
         self.concept_variables = [
+            ConceptVariableObject(variable_type="concept", concept_id=1003),
             ConceptVariableObject(variable_type="concept", concept_id=1001),
             ConceptVariableObject(variable_type="concept", concept_id=1002),
-            ConceptVariableObject(variable_type="concept", concept_id=1003),
         ]
-
-    def test_main_continuous_no_outcome_concept(self):
-        args = MockArgs(
-            source_id=2,
-            case_cohort_id=9,
-            control_cohort_id=None,
-            variables_json="/fake/json",
-            outcome_concept_id=None,
-            n_pcs=3,
-            maf_threshold=0.01,
-            imputation_score_cutoff=0.3,
-            hare_population="Hispanic",
-            pvalue_cutoff=5e-8,
-            top_n_hits=100,
-            output="/some/path",
-        )
-
-        with captured_output() as (_, _):
-            with self.assertRaises(AssertionError) as e:
-                MOD.main(args)
 
     def test_main_continuous_params(self):
         (_, outpath) = tempfile.mkstemp(suffix='.yaml')
         (_, vjsonpath) = tempfile.mkstemp(suffix='.json')
 
-        args = self.get_mock_args(vjsonpath, outpath, case_control=False)
+        args = self.get_mock_args(vjsonpath, self.outcome_continuous_str, outpath, case_control=False)
 
         with open(vjsonpath, 'wt') as o:
             json.dump(
@@ -300,17 +282,16 @@ class GetGwasMetadataSubcommand_Main(GetGwasMetadataSubcommand_SharedObjects):
                 + [dataclasses.asdict(i) for i in self.custom_dichotomous_variables],
                 o,
             )
-
-        case_cohort_def = make_cohort_def(args.case_cohort_id, "CASE", "Fake")
-        control_cohort_def = None
+        source_population_cohort_def = make_cohort_def(
+            args.source_population_cohort, "SourceCohort", "Fake"
+            )
+        outcome_section = dataclasses.asdict(self.concept_defs[0])
+        outcome_section["type"] = "CONTINUOUS"
 
         expected = {
-            "cohorts": {
-                "case_cohort": dataclasses.asdict(case_cohort_def),
-                "control_cohort": control_cohort_def,
-            },
-            "phenotype": dataclasses.asdict(self.concept_defs[-1]),
-            "covariates": [dataclasses.asdict(i) for i in self.concept_defs[:-1]]
+            "source_cohort": dataclasses.asdict(source_population_cohort_def),
+            "outcome": outcome_section,
+            "covariates": [dataclasses.asdict(i) for i in self.concept_defs[1:]]
             + self.get_exp_custom_dichotomous(),
             "parameters": {
                 "n_population_pcs": args.n_pcs,
@@ -330,8 +311,8 @@ class GetGwasMetadataSubcommand_Main(GetGwasMetadataSubcommand_SharedObjects):
             ) as mock_concept_def, mock.patch.object(
                 MOD, "_get_custom_dichotomous_cohort_metadata"
             ) as mock_get_custom_dichotomous:
-                mock_cohort_def.return_value = case_cohort_def
-                mock_concept_def.return_value = self.concept_defs
+                mock_cohort_def.return_value = source_population_cohort_def
+                mock_concept_def.side_effect = [[self.concept_defs[0]], self.concept_defs[1:]]
 
                 MOD._format_metadata = mock.MagicMock(return_value=expected)
                 mock_get_custom_dichotomous.return_value = (
@@ -339,23 +320,21 @@ class GetGwasMetadataSubcommand_Main(GetGwasMetadataSubcommand_SharedObjects):
                 )
                 MOD.main(args)
 
-                mock_cohort_def.assert_called_once_with(self.case_cohort_id)
-                mock_concept_def.assert_called_once_with(
-                    args.source_id, [i.concept_id for i in self.concept_defs]
-                )
+                mock_cohort_def.assert_called_once_with(self.source_population_cohort)
+                assert mock_concept_def.call_count == 2
 
                 mock_get_custom_dichotomous.assert_called_once()
                 name, _args, kwargs = mock_get_custom_dichotomous.mock_calls[0]
                 self.assertEqual(self.custom_dichotomous_variables, _args[0])
 
                 MOD._format_metadata.assert_called_with(
-                    case_cohort_def,
-                    control_cohort_def,
-                    self.concept_defs,
-                    self.custom_dichotomous_variables,
-                    self.custom_dichotomous_cohort_meta,
-                    1003,
-                    args,
+                    options=args,
+                    source_cohort_def=source_population_cohort_def,
+                    outcome=self.outcome_continuous,
+                    concept_data=self.concept_defs[1:],
+                    custom_dichotomous_variables=self.custom_dichotomous_variables,
+                    custom_dichotomous_cohort_metadata=self.custom_dichotomous_cohort_meta,
+                    outcome_data=self.concept_defs[0]
                 )
 
             with open(outpath, 'r') as fh:
@@ -371,26 +350,33 @@ class GetGwasMetadataSubcommand_Main(GetGwasMetadataSubcommand_SharedObjects):
         (_, outpath) = tempfile.mkstemp(suffix='.yaml')
         (_, vjsonpath) = tempfile.mkstemp(suffix='.json')
 
-        args = self.get_mock_args(vjsonpath, outpath, case_control=True)
+        args = self.get_mock_args(vjsonpath, self.outcome_case_control_str, outpath, case_control=True)
 
         with open(vjsonpath, 'wt') as o:
             json.dump(
-                [dataclasses.asdict(i) for i in self.concept_variables]
-                + [dataclasses.asdict(i) for i in self.custom_dichotomous_variables],
+                [dataclasses.asdict(i) for i in self.custom_dichotomous_variables]
+                +[dataclasses.asdict(i) for i in self.concept_variables],
                 o,
             )
 
-        case_cohort_def = make_cohort_def(args.case_cohort_id, "CASE", "Fake")
-        control_cohort_def = make_cohort_def(args.control_cohort_id, "CONTROL", "Fake")
+        source_population_cohort_def = make_cohort_def(args.source_population_cohort, "SourceCohort", "Fake")
+        outcome =  self.outcome_case_control
+        case_cohort_def = make_cohort_def(outcome.cohort_ids[1], "CASE", "Fake")
+        control_cohort_def = make_cohort_def(outcome.cohort_ids[0], "CONTROL", "Fake")
+        outcome_section = {
+            "type":"CASE-CONTROL",
+            "concept_name": "Fake",
+            "concept_cohorts": {
+                "case_cohort": dataclasses.asdict(case_cohort_def),
+                "control_cohort": dataclasses.asdict(control_cohort_def)
+            }
+        }
 
         expected = {
-            "cohorts": {
-                "case_cohort": dataclasses.asdict(case_cohort_def),
-                "control_cohort": dataclasses.asdict(control_cohort_def),
-            },
-            "phenotype": dataclasses.asdict(self.concept_defs[-1]),
+            "source_cohort": dataclasses.asdict(source_population_cohort_def),
+            "outcome": outcome_section,
             "covariates": [dataclasses.asdict(i) for i in self.concept_defs]
-            + self.get_exp_custom_dichotomous(),
+            + self.get_exp_custom_dichotomous()[1:],
             "parameters": {
                 "n_population_pcs": args.n_pcs,
                 "maf_threshold": args.maf_threshold,
@@ -409,7 +395,13 @@ class GetGwasMetadataSubcommand_Main(GetGwasMetadataSubcommand_SharedObjects):
             ) as mock_concept_def, mock.patch.object(
                 MOD, "_get_custom_dichotomous_cohort_metadata"
             ) as mock_get_custom_dichotomous:
-                mock_cohort_def.side_effect = [case_cohort_def, control_cohort_def]
+
+                # mock_cohort_def.side_effect = [case_cohort_def, control_cohort_def]
+                mock_cohort_def.side_effect = [
+                    source_population_cohort_def,
+                    case_cohort_def,
+                    control_cohort_def
+                    ]
                 mock_concept_def.return_value = self.concept_defs
 
                 MOD._format_metadata = mock.MagicMock(return_value=expected)
@@ -418,9 +410,14 @@ class GetGwasMetadataSubcommand_Main(GetGwasMetadataSubcommand_SharedObjects):
                 )
                 MOD.main(args)
 
-                self.assertEqual(mock_cohort_def.call_count, 2)
+                self.assertEqual(mock_cohort_def.call_count, 3)
                 mock_cohort_def.assert_has_calls(
-                    [mock.call(args.case_cohort_id), mock.call(args.control_cohort_id)]
+                    [
+                        mock.call(args.source_population_cohort),
+                        mock.call(outcome.cohort_ids[1]), 
+                        mock.call(outcome.cohort_ids[0]),
+
+                    ]
                 )
 
                 mock_concept_def.assert_called_once_with(
@@ -429,90 +426,17 @@ class GetGwasMetadataSubcommand_Main(GetGwasMetadataSubcommand_SharedObjects):
 
                 mock_get_custom_dichotomous.assert_called_once()
                 name, _args, kwargs = mock_get_custom_dichotomous.mock_calls[0]
-                self.assertEqual(self.custom_dichotomous_variables, _args[0])
+                self.assertEqual(self.custom_dichotomous_variables[1], _args[0][0])
 
                 MOD._format_metadata.assert_called_with(
-                    case_cohort_def,
-                    control_cohort_def,
-                    self.concept_defs,
-                    self.custom_dichotomous_variables,
-                    self.custom_dichotomous_cohort_meta,
-                    None,
-                    args,
-                )
-
-            with open(outpath, 'r') as fh:
-                res = yaml.safe_load(fh)
-
-            self.assertEqual(
-                json.dumps(res, sort_keys=True), json.dumps(expected, sort_keys=True)
-            )
-        finally:
-            cleanup_files([outpath, vjsonpath])
-
-    def test_main_case_control_params_no_covariates(self):
-        (_, outpath) = tempfile.mkstemp(suffix='.yaml')
-        (_, vjsonpath) = tempfile.mkstemp(suffix='.json')
-
-        args = self.get_mock_args(vjsonpath, outpath, case_control=True)
-
-        with open(vjsonpath, 'wt') as o:
-            json.dump([], o)
-
-        case_cohort_def = make_cohort_def(args.case_cohort_id, "CASE", "Fake")
-        control_cohort_def = make_cohort_def(args.control_cohort_id, "CONTROL", "Fake")
-
-        expected = {
-            "cohorts": {
-                "case_cohort": dataclasses.asdict(case_cohort_def),
-                "control_cohort": dataclasses.asdict(control_cohort_def),
-            },
-            "phenotype": {"concept_id": None, "concept_name": "CASE-CONTROL"},
-            "covariates": [],
-            "parameters": {
-                "n_population_pcs": args.n_pcs,
-                "maf_threshold": args.maf_threshold,
-                "imputation_score_cutoff": args.imputation_score_cutoff,
-                "hare_population": args.hare_population,
-                "pvalue_cutoff": 5e-8,
-                "top_n_hits": 100,
-            },
-        }
-
-        try:
-            with mock.patch.object(
-                CohortServiceClient, "get_cohort_definition"
-            ) as mock_cohort_def, mock.patch.object(
-                CohortServiceClient, "get_concept_descriptions"
-            ) as mock_concept_def, mock.patch.object(
-                MOD, "_get_custom_dichotomous_cohort_metadata"
-            ) as mock_get_custom_dichotomous:
-                mock_cohort_def.side_effect = [case_cohort_def, control_cohort_def]
-                # mock_concept_def.return_value = self.concept_defs
-
-                MOD._format_metadata = mock.MagicMock(return_value=expected)
-                mock_get_custom_dichotomous.return_value = {}
-                MOD.main(args)
-
-                self.assertEqual(mock_cohort_def.call_count, 2)
-                mock_cohort_def.assert_has_calls(
-                    [mock.call(args.case_cohort_id), mock.call(args.control_cohort_id)]
-                )
-
-                mock_concept_def.assert_not_called()
-
-                mock_get_custom_dichotomous.assert_called_once()
-                name, _args, kwargs = mock_get_custom_dichotomous.mock_calls[0]
-                self.assertEqual([], _args[0])
-
-                MOD._format_metadata.assert_called_with(
-                    case_cohort_def,
-                    control_cohort_def,
-                    [],
-                    [],
-                    {},
-                    None,
-                    args,
+                    options=args,
+                    source_cohort_def=source_population_cohort_def,
+                    outcome=self.outcome_case_control,
+                    concept_data=self.concept_defs,
+                    custom_dichotomous_variables=self.custom_dichotomous_variables[1:],
+                    custom_dichotomous_cohort_metadata=self.custom_dichotomous_cohort_meta,
+                    case_cohort_def=case_cohort_def,
+                    control_cohort_def=control_cohort_def,
                 )
 
             with open(outpath, 'r') as fh:
