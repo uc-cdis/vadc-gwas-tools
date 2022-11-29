@@ -97,8 +97,9 @@ class ProcessInputVariables(Subcommand):
             pass
 
         # Create validated variables
+        output_raw_variables = [asdict(i) for i in variables]
         with open(options.output_raw_variable_json, 'wt') as o:
-            json.dump(variables, o)
+            json.dump(output_raw_variables, o)
 
         # Create variables with HARE
         hare_concept = ConceptVariableObject(
