@@ -41,10 +41,16 @@ class ProcessInputVariables(Subcommand):
             help="JSON formatted string of the outcome variable.",
         )
         parser.add_argument(
-            "--output_variable_json",
+            "--output_raw_variable_json",
             required=True,
             type=str,
-            help="Output path to use for updated variable JSON.",
+            help="Output path to a validated raw variable json"
+        )
+        parser.add_argument(
+            "--output_variable_json_w_hare",
+            required=True,
+            type=str,
+            help="Output path to use for updated variable JSON with hare population concept id.",
         )
         parser.add_argument(
             "--output_other_json",
@@ -79,10 +85,21 @@ class ProcessInputVariables(Subcommand):
         )
         logger.info(f"Outcome type is {outcome_type}")
 
-        # Validate
+        # Validate if outcome in variables
         assert (
             outcome in variables
         ), f"Outcome {outcome} is not found in variables list."
+
+        # Make the outocme as the first item in variables if it's not the case
+        if outcome != variables[0]:
+            variables.insert(0, variables.pop(variables.index(outcome)))
+        else:
+            pass
+
+        # Create validated variables
+        output_raw_variables = [asdict(i) for i in variables]
+        with open(options.output_raw_variable_json, 'wt') as o:
+            json.dump(output_raw_variables, o)
 
         # Create variables with HARE
         hare_concept = ConceptVariableObject(
@@ -90,7 +107,7 @@ class ProcessInputVariables(Subcommand):
             concept_id=options.hare_concept_id,
         )
         output_with_hare = [asdict(i) for i in variables + [hare_concept]]
-        with open(options.output_variable_json, 'wt') as o:
+        with open(options.output_variable_json_w_hare, 'wt') as o:
             json.dump(output_with_hare, o)
 
         # Make covariate list
