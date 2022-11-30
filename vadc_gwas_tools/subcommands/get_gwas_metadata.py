@@ -30,21 +30,12 @@ class GetGwasMetadata(Subcommand):
             "--source_id", required=True, type=int, help="The cohort source ID."
         )
         parser.add_argument(
-            "--case_cohort_id",
+            "--source_population_cohort",
             required=True,
             type=int,
             help=(
-                "The cohort ID for 'cases'. For continuous phenotypes, this is the "
-                "only cohort ID needed."
-            ),
-        )
-        parser.add_argument(
-            "--control_cohort_id",
-            required=False,
-            type=int,
-            default=None,
-            help=(
-                "The cohort ID for 'controls'. Only relevant for case-control phenotypes."
+                "The cohort ID for source population. This is required for both "
+                "case-control and quantitative workflow."
             ),
         )
         parser.add_argument(
@@ -53,13 +44,13 @@ class GetGwasMetadata(Subcommand):
             help="Path to the JSON file containing the variable objects.",
         )
         parser.add_argument(
-            "--outcome_concept_id",
-            required=False,
+            "--outcome",
+            required=True,
             type=str,
             default=None,
             help=(
-                "Concept ID for continuous outcome phenotype. "
-                "Not required for case-control studies."
+                "JSON formatted string of outcome variable."
+                "Required for both case-control and quantitative workflow."
             ),
         )
         parser.add_argument(
@@ -115,57 +106,65 @@ class GetGwasMetadata(Subcommand):
         logger.info(cls.__get_description__())
 
         is_case_control = False
-        outcome_concept_id = None
 
-        if options.control_cohort_id is not None:
-            assert options.case_cohort_id != options.control_cohort_id, (
-                "Case cohort ID can't be the same as the Control cohort ID: "
-                f"{options.case_cohort_id} {options.control_cohort_id}"
-            )
+        outcome = json.loads(
+            options.outcome,
+            object_hook=CohortServiceClient.decode_concept_variable_json,
+        )
+
+        # Decide the category of workflow
+        if isinstance(outcome, CustomDichotomousVariableObject):
             is_case_control = True
-
+            outcome_control_cohort, outcome_case_cohort = outcome.cohort_ids
+            outcome_case_control_provided_name = outcome.provided_name
             logger.info("Case-Control Design...")
             logger.info(
                 (
-                    f"Case Cohort: {options.case_cohort_id}; "
-                    f"Control Cohort: {options.control_cohort_id}"
+                    f"Source Cohort: {options.source_population_cohort} "
+                    f"Case Cohort: {outcome_case_cohort}; "
+                    f"Control Cohort: {outcome_control_cohort}"
                 )
             )
-
         else:
-            logger.info("Continuous phenotype Design...")
-            logger.info(f"Cohort: {options.case_cohort_id}")
-            assert (
-                options.outcome_concept_id is not None
-            ), "You must provide --outcome_concept_id for continuous phenotypes."
-
-            outcome_concept_id = CohortServiceClient.strip_concept_prefix(
-                options.outcome_concept_id
-            )[0]
+            logger.info("Continuous Design...")
+            logger.info((f"Source Cohort: {options.source_population_cohort} "))
 
         # Load variables
-        with open(options.variables_json, 'rt') as fh:
+        with open(options.variables_json, "rt") as fh:
             variables = json.load(
                 fh, object_hook=CohortServiceClient.decode_concept_variable_json
             )
 
         # Check concepts
+        # Only covariates are included in the vairable lists
         concept_variables, custom_dichotomous_variables = cls._get_variable_lists(
-            variables, outcome_concept_id
+            variables, outcome
         )
 
         # Client
         client = CohortServiceClient()
 
-        # Get cohort defs
-        case_cohort_def = client.get_cohort_definition(options.case_cohort_id)
-        control_cohort_def = (
-            client.get_cohort_definition(options.control_cohort_id)
-            if is_case_control
-            else None
+        # Get source population cohort defs
+        logger.info("Fetching source population cohort definition")
+        source_cohort_def = client.get_cohort_definition(
+            options.source_population_cohort
         )
 
+        # Get cohort def in case-control workflow case
+        # Get outcome concept def in continuous workflow case
+        if is_case_control:
+            logger.info("Fetching case and control cohort definitions...")
+            case_cohort_def = client.get_cohort_definition(outcome.cohort_ids[1])
+            control_cohort_def = client.get_cohort_definition(outcome.cohort_ids[0])
+        else:
+            logger.info("Fetching continuous outcome definition...")
+            outcome_data_request = client.get_concept_descriptions(
+                options.source_id, [outcome.concept_id]
+            )
+            outcome_data = outcome_data_request[0]
+
         # Get concept variable data
+        logger.info("Fetching covariates metadata...")
         if concept_variables:
             concept_data = client.get_concept_descriptions(
                 options.source_id, [i.concept_id for i in concept_variables]
@@ -181,19 +180,34 @@ class GetGwasMetadata(Subcommand):
         )
 
         # Format all metadata
-        formatted_metadata = cls._format_metadata(
-            case_cohort_def,
-            control_cohort_def,
-            concept_data,
-            custom_dichotomous_variables,
-            custom_dichotomous_cohort_metadata,
-            outcome_concept_id,
-            options,
-        )
+        logger.info("Formatting GWAS metadata...")
+        if is_case_control:
+            formatted_metadata = cls._format_metadata(
+                options=options,
+                source_cohort_def=source_cohort_def,
+                outcome=outcome,
+                concept_data=concept_data,
+                custom_dichotomous_variables=custom_dichotomous_variables,
+                custom_dichotomous_cohort_metadata=custom_dichotomous_cohort_metadata,
+                case_cohort_def=case_cohort_def,
+                control_cohort_def=control_cohort_def
+            )
+        else:
+            formatted_metadata = cls._format_metadata(
+                options=options,
+                source_cohort_def=source_cohort_def,
+                outcome=outcome,
+                concept_data=concept_data,
+                custom_dichotomous_variables=custom_dichotomous_variables,
+                custom_dichotomous_cohort_metadata=custom_dichotomous_cohort_metadata,
+                outcome_data=outcome_data
+            )
 
         # Export metadata
-        with open(options.output, 'w') as o:
-            yaml.dump(formatted_metadata, o, default_flow_style=False)
+        logger.info("Writing GWAS metadata...")
+        logger.info((f"Output: {options.output} "))
+        with open(options.output, "w") as o:
+            yaml.dump(formatted_metadata, o, default_flow_style=False, sort_keys=False)
 
     @classmethod
     def _get_variable_lists(
@@ -201,31 +215,31 @@ class GetGwasMetadata(Subcommand):
         variable_objects: List[
             Union[ConceptVariableObject, CustomDichotomousVariableObject]
         ],
-        outcome_concept_id: Optional[int],
+        outcome: Union[ConceptVariableObject, CustomDichotomousVariableObject],
     ) -> Tuple[List[ConceptVariableObject], List[CustomDichotomousVariableObject]]:
         """
-        Makes sure the outcome concept is part of the variable list.
-        Adds it if necessary. Also separates the `ConceptVariableObject` from
-        the `CustomDichotomousVariableObject`.
+        Makes sure the outcome concept is the first element
+        of the variable list. Also separates the `ConceptVariableObject`
+        from the `CustomDichotomousVariableObject`. Outputs only include
+        covariates, excluding outcome
         """
-        outcome_seen = False
+        # Check if the first item in variable_objects equals to outcome
+        assert outcome == variable_objects[0], (
+            "First element of variable list is not equal to the outcome\n"
+            f"First element of variables: {variable_objects[0]}\n"
+            f"Outcome: {outcome}"
+        )
         concept_variables = []
         custom_dichotomous_variables = []
-        for variable in variable_objects:
+        for variable in variable_objects[1:]:  # skip the first item, aka, outcome
             if isinstance(variable, ConceptVariableObject):
-                concept_variables.append(variable)
-                if (
-                    outcome_concept_id is not None
-                    and outcome_concept_id == variable.concept_id
-                ):
-                    outcome_seen = True
+                # check if the concept variable is the hare population
+                if variable.concept_id != 2000007027:
+                    concept_variables.append(variable)
+                else:
+                    pass
             elif isinstance(variable, CustomDichotomousVariableObject):
                 custom_dichotomous_variables.append(variable)
-        if outcome_concept_id is not None and not outcome_seen:
-            outcome_variable = ConceptVariableObject(
-                variable_type="concept", concept_id=outcome_concept_id
-            )
-            concept_variables.append(outcome_variable)
         return concept_variables, custom_dichotomous_variables
 
     @classmethod
@@ -252,42 +266,54 @@ class GetGwasMetadata(Subcommand):
     @classmethod
     def _format_metadata(
         cls,
-        case_cohort_def: CohortDefinitionResponse,
-        control_cohort_def: Optional[CohortDefinitionResponse],
+        options: Namespace,
+        source_cohort_def: CohortDefinitionResponse,
+        # outcome provides outcome.provded_name in case-control case
+        outcome: Union[CustomDichotomousVariableObject, ConceptVariableObject],
         concept_data: List[ConceptDescriptionResponse],
         custom_dichotomous_variables: List[CustomDichotomousVariableObject],
         custom_dichotomous_cohort_metadata: Dict[int, CohortDefinitionResponse],
-        outcome_concept_id: Optional[int],
-        options: Namespace,
+        # case_cohort_def and control_cohort_def needed in case-control case
+        case_cohort_def: Optional[CohortDefinitionResponse] = None,
+        control_cohort_def: Optional[CohortDefinitionResponse] = None,
+        # outcome_data provides concept metadata in continuous case
+        outcome_data: Optional[ConceptDescriptionResponse] = None,
     ) -> Dict[str, Union[List[Dict[str, str]], Dict[str, Any]]]:
-        """
-        Combines all the different metadata from cohorts and concepts
-        into a single object. Handles separating out covariates from phenotypes.
-        """
-        # Cohort section
-        cohorts = {
-            "case_cohort": dataclasses.asdict(case_cohort_def),
-            "control_cohort": None
-            if control_cohort_def is None
-            else dataclasses.asdict(control_cohort_def),
+        # source cohort section
+        source_cohort = dataclasses.asdict(source_cohort_def)
+
+        # gwas runtime paramters section
+        parameters = {
+            "n_population_pcs": options.n_pcs,
+            "maf_threshold": options.maf_threshold,
+            "imputation_score_cutoff": options.imputation_score_cutoff,
+            "hare_population": options.hare_population,
+            "pvalue_cutoff": options.pvalue_cutoff,
+            "top_n_hits": options.top_n_hits
         }
 
-        # Clinical variable section (also separate phenotype from covariates)
-        phenotype = {}
-        covariates = []
-        if outcome_concept_id is None:
-            phenotype = {"concept_id": None, "concept_name": "CASE-CONTROL"}
-            for record in concept_data:
-                covariates.append(dataclasses.asdict(record))
-        else:
-            # split outcome
-            for record in concept_data:
-                if record.concept_id == outcome_concept_id:
-                    phenotype = dataclasses.asdict(record)
-                else:
-                    covariates.append(dataclasses.asdict(record))
+        # Outcome section
+        if isinstance(outcome, ConceptVariableObject):  # continuous workflow
+            outcome_section = dataclasses.asdict(outcome_data)
+            # Insert the workflow type as the first element
+            outcome_section_items = list(outcome_section.items())
+            outcome_section_items.insert(0, ("type", "CONTINUOUS"))
+            outcome_section = dict(outcome_section_items)
+        else:  # case-control workflow 
+            outcome_section = {
+                "type": "CASE-CONTROL",
+                "concept_name": outcome.provided_name,
+                "concept_cohorts" : {
+                    "case_cohort": dataclasses.asdict(case_cohort_def),
+                    "control_cohort": dataclasses.asdict(control_cohort_def)
+                }
+            }
 
-        # Add custom dichotomous
+        # Clinical covariables section
+        covariates = []
+        for record in concept_data:
+            covariates.append(dataclasses.asdict(record))
+
         for variable in custom_dichotomous_variables:
             record = []
             for n, cohort in enumerate(variable.cohort_ids):
@@ -298,25 +324,14 @@ class GetGwasMetadata(Subcommand):
                 record.append(cohort)
             cd_dict = {"custom_dichotomous": {"cohorts": record}}
             covariates.append(cd_dict)
-
-        # add other runtime parameters
-        parameters = {
-            "n_population_pcs": options.n_pcs,
-            "maf_threshold": options.maf_threshold,
-            "imputation_score_cutoff": options.imputation_score_cutoff,
-            "hare_population": options.hare_population,
-            "pvalue_cutoff": options.pvalue_cutoff,
-            "top_n_hits": options.top_n_hits,
-        }
-
+        
         # Put it all together and return dict
         data = {
-            "cohorts": cohorts,
-            "phenotype": phenotype,
+            "source_cohort": source_cohort,
             "covariates": covariates,
             "parameters": parameters,
+            "outcome": outcome_section
         }
-
         return data
 
     @classmethod
@@ -325,10 +340,10 @@ class GetGwasMetadata(Subcommand):
         Description of tool.
         """
         return (
-            "Generates a metadata file based on the GWAS variables, cohorts, and "
-            "parameters used in the workflow. For continuous variables only --case_cohort_id is "
-            "necessary along with the --outcome_concept_id. For case-control, add both "
-            "--case_cohort_id and --control_cohort_id. Set the GEN3_ENVIRONMENT "
-            "environment variable if the internal URL for a service utilizes an environment "
-            "other than 'default'."
+            "Generates a metadata file based on the GWAS variables, cohorts,"
+            "and parameters used in the workflow. --outcome, a json formatted"
+            "str, and --source_population_cohort are required for both "
+            "contunuous and case-control workflows. Set the GEN3_ENVIRONMENT"
+            "environment variable if the internal URL for a service utilizes"
+            "an environment other than 'default'."
         )
