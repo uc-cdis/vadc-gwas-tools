@@ -34,6 +34,7 @@ class ConceptDescriptionResponse:
 class ConceptVariableObject:
     variable_type: str
     concept_id: int
+    concept_name: Optional[str] = None
     prefixed_concept_id: Optional[str] = None
 
 
