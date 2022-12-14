@@ -96,11 +96,13 @@ class TestCohortServiceClient(unittest.TestCase):
                     {
                         "variable_type": "concept",
                         "concept_id": 1001,
+                        "concept_name": None,
                         "prefixed_concept_id": "ID_1001",
                     },
                     {
                         "variable_type": "concept",
                         "concept_id": 1002,
+                        "concept_name": None,
                         "prefixed_concept_id": "ID_1002",
                     },
                     {
@@ -178,11 +180,13 @@ class TestCohortServiceClient(unittest.TestCase):
                     {
                         "variable_type": "concept",
                         "concept_id": 1001,
+                        "concept_name": None,
                         "prefixed_concept_id": "ID_1001",
                     },
                     {
                         "variable_type": "concept",
                         "concept_id": 1002,
+                        "concept_name": None,
                         "prefixed_concept_id": "ID_1002",
                     },
                     {
