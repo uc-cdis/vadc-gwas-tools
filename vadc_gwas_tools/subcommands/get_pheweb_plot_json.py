@@ -40,8 +40,8 @@ class GetPheWebPlotJson(Subcommand):
         parser.add_argument(
             "--out_plot_type",
             required=True,
-            type=str,
-            help="Type of desired output plot type ('manhattan' or 'qq')",
+            choices=['manhattan', 'qq'],
+            help="Type of desired output plot type",
         )
 
     @classmethod
@@ -63,8 +63,6 @@ class GetPheWebPlotJson(Subcommand):
         elif options.out_plot_type == 'qq':
             # TODO
             pass
-        else:
-            raise ValueError('option not supported')
 
     @classmethod
     def __get_description__(cls) -> str:
