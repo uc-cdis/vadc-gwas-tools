@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "vadc-gwas-tools"
 description = "CLI with subcommands that support the GWAS workflows."
-version = "1.0.1"
+version = "1.1.0"
 repository = "https://github.com/uc-cdis/vadc-gwas-tools"
 authors = ["Kyle Hernandez <kmhernan@uchicago.edu>"]
 license = "Apache-2.0"
