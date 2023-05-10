@@ -120,6 +120,7 @@ class TestCohortServiceClient(unittest.TestCase):
                     "Authorization": "Bearer abc",
                 },
                 stream=True,
+                timeout=(6.05, 180),
             )
 
             with self.assertRaises(OSError) as _:
@@ -204,6 +205,7 @@ class TestCohortServiceClient(unittest.TestCase):
                     "Authorization": "Bearer abc",
                 },
                 stream=True,
+                timeout=(6.05, 180),
             )
             with gzip.open(fpath1, "rt") as fh:
                 header = fh.readline().rstrip("\r\n").split(",")
@@ -442,6 +444,7 @@ class TestCohortServiceClient(unittest.TestCase):
                     "Authorization": "Bearer abc",
                 },
                 stream=True,
+                timeout=(6.05, 180),
             )
 
             with self.assertRaises(OSError) as _:
