@@ -1,8 +1,9 @@
 """Communicates with cohort middleware service to extract the attribution
-breakdown CSV(s).
+breakdown CSV(s) and separately a JSON version.
 
 @author: Kyle Hernandez <kmhernan@uchicago.edu>
 """
+import csv
 import json
 from argparse import ArgumentParser, Namespace
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -12,7 +13,6 @@ from vadc_gwas_tools.common.cohort_middleware import (
     ConceptVariableObject,
     CustomDichotomousVariableObject,
 )
-
 from vadc_gwas_tools.common.logger import Logger
 from vadc_gwas_tools.subcommands import Subcommand
 
@@ -52,10 +52,16 @@ class GetCohortAttritionTable(Subcommand):
             help="Prefixed concept ID to use for stratification (e.g., HARE concept).",
         )
         parser.add_argument(
-            "--output_prefix",
+            "--output_csv_prefix",
             required=True,
             type=str,
             help="Prefix to use for outputs (1 csv for quantitative, 2 csvs for case-control).",
+        )
+        parser.add_argument(
+            "--output_combined_json",
+            required=True,
+            type=str,
+            help="Path to write the combined JSON attrition.",
         )
 
     @classmethod
@@ -116,6 +122,10 @@ class GetCohortAttritionTable(Subcommand):
                 variables,
                 options.prefixed_breakdown_concept_id,
             )
+            # Generate JSON
+            attrition_json = cls._format_attrition_json(continuous_csv)
+            with open(options.output_combined_json, 'wt') as o:
+                json.dump(attrition_json, o, indent=2)
 
         else:  # Case-control workflow
             # logger info
@@ -128,10 +138,11 @@ class GetCohortAttritionTable(Subcommand):
                 )
             )
 
-            control_variable_list, case_variable_list = cls._get_case_control_variable_lists_(
-                variables,
-                outcome_val,
-                options.source_population_cohort
+            (
+                control_variable_list,
+                case_variable_list,
+            ) = cls._get_case_control_variable_lists_(
+                variables, outcome_val, options.source_population_cohort
             )
 
             # Call cohort-middleware for control cohort
@@ -189,8 +200,8 @@ class GetCohortAttritionTable(Subcommand):
             cohort_ids=case_call_cohort_ids,
             provided_name="Case cohort only",
         )
-        control_variable_list.insert(1, new_control_dvar)
-        case_variable_list.insert(1, new_case_dvar)
+        control_variable_list.insert(0, new_control_dvar)
+        case_variable_list.insert(0, new_case_dvar)
         return control_variable_list, case_variable_list
 
     @classmethod
@@ -203,7 +214,8 @@ class GetCohortAttritionTable(Subcommand):
             "that are stratified by a particular breakdown concept (e.g., HARE population). "
             "Quatitative and case-control workflow will be differentiated by --outcome argument"
             "For quantitative phenotypes, only a single CSV will be generated. For case-control, "
-            "two CSVs will be produced (one for case cohort and one for control cohort)."
+            "two CSVs will be produced (one for case cohort and one for control cohort). "
+            "A single combined JSON will be created for front-end purposes. "
             "Set the GEN3_ENVIRONMENT environment variable if the internal URL for a service "
             "utilizes an environment other than 'default'."
         )
