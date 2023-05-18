@@ -21,7 +21,7 @@ class MockArgs(NamedTuple):
     variables_json: str
     outcome: str
     prefixed_breakdown_concept_id: str
-    output_prefix: str
+    output_csv_prefix: str
     output_combined_json: str
 
 
@@ -61,7 +61,7 @@ class TestGetCohortAttritionTableSubcommand(unittest.TestCase):
                 variables_json=fpath1,
                 outcome=self.continuous_outcome,
                 prefixed_breakdown_concept_id="ID_3",
-                output_prefix="/some/path/my_gwas_project",
+                output_csv_prefix="/some/path/my_gwas_project",
                 output_combined_json=fpath2,
             )
             variable_list_str = json.dumps(self.continuous_variable_list)
@@ -97,14 +97,15 @@ class TestGetCohortAttritionTableSubcommand(unittest.TestCase):
                 instance.get_attrition_breakdown_csv.assert_called_with(
                     args.source_id,
                     args.source_population_cohort,
-                    f"{args.output_prefix}.source_cohort.attrition_table.csv",
+                    f"{args.output_csv_prefix}.source_cohort.attrition_table.csv",
                     variable_objects,
                     args.prefixed_breakdown_concept_id,
                 )
 
                 MOD._format_attrition_for_json.assert_called_once()
                 MOD._format_attrition_for_json.assert_called_with(
-                    f"{args.output_prefix}.source_cohort.attrition_table.csv", "case"
+                    f"{args.output_csv_prefix}.source_cohort.attrition_table.csv",
+                    "case",
                 )
 
             with open(fpath2, 'rt') as fh:
@@ -126,7 +127,7 @@ class TestGetCohortAttritionTableSubcommand(unittest.TestCase):
                 variables_json=fpath1,
                 outcome=self.binary_outcome,
                 prefixed_breakdown_concept_id="ID_3",
-                output_prefix="/some/path/my_gwas_project",
+                output_csv_prefix="/some/path/my_gwas_project",
                 output_combined_json=fpath2,
             )
             variable_list_str = json.dumps(self.binary_variable_list)
@@ -195,14 +196,14 @@ class TestGetCohortAttritionTableSubcommand(unittest.TestCase):
                         mock.call(
                             args.source_id,
                             args.source_population_cohort,
-                            f"{args.output_prefix}.control_cohort.attrition_table.csv",
+                            f"{args.output_csv_prefix}.control_cohort.attrition_table.csv",
                             control_variable_list,
                             args.prefixed_breakdown_concept_id,
                         ),
                         mock.call(
                             args.source_id,
                             args.source_population_cohort,
-                            f"{args.output_prefix}.case_cohort.attrition_table.csv",
+                            f"{args.output_csv_prefix}.case_cohort.attrition_table.csv",
                             case_variable_list,
                             args.prefixed_breakdown_concept_id,
                         ),
@@ -213,11 +214,11 @@ class TestGetCohortAttritionTableSubcommand(unittest.TestCase):
                 MOD._format_attrition_for_json.assert_has_calls(
                     [
                         mock.call(
-                            f"{args.output_prefix}.case_cohort.attrition_table.csv",
+                            f"{args.output_csv_prefix}.case_cohort.attrition_table.csv",
                             "case",
                         ),
                         mock.call(
-                            f"{args.output_prefix}.control_cohort.attrition_table.csv",
+                            f"{args.output_csv_prefix}.control_cohort.attrition_table.csv",
                             "control",
                         ),
                     ]

@@ -110,7 +110,7 @@ class GetCohortAttritionTable(Subcommand):
             )
             # Call cohort-middleware for continuous workflow
             continuous_csv = (
-                f"{options.output_prefix}.source_cohort.attrition_table.csv"
+                f"{options.output_csv_prefix}.source_cohort.attrition_table.csv"
             )
             logger.info(
                 f"Writing continuous workflow attrition table to {continuous_csv}"
@@ -148,7 +148,9 @@ class GetCohortAttritionTable(Subcommand):
             )
 
             # Call cohort-middleware for control cohort
-            control_csv = f"{options.output_prefix}.control_cohort.attrition_table.csv"
+            control_csv = (
+                f"{options.output_csv_prefix}.control_cohort.attrition_table.csv"
+            )
             logger.info(
                 f"Writing case-control control cohort attrition table to {control_csv}"
             )
@@ -161,7 +163,7 @@ class GetCohortAttritionTable(Subcommand):
             )
 
             # Call cohort-middleware for case cohort
-            case_csv = f"{options.output_prefix}.case_cohort.attrition_table.csv"
+            case_csv = f"{options.output_csv_prefix}.case_cohort.attrition_table.csv"
             logger.info(
                 f"Writing case-control case cohort attrition table to {case_csv}"
             )
