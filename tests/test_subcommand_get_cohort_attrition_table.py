@@ -22,6 +22,7 @@ class MockArgs(NamedTuple):
     outcome: str
     prefixed_breakdown_concept_id: str
     output_prefix: str
+    output_combined_json: str
 
 
 class TestGetCohortAttritionTableSubcommand(unittest.TestCase):
@@ -50,6 +51,7 @@ class TestGetCohortAttritionTableSubcommand(unittest.TestCase):
 
     def test_main_continuous(self):
         (_, fpath1) = tempfile.mkstemp()
+        (_, fpath2) = tempfile.mkstemp()
         try:
             with open(fpath1, 'wt') as o:
                 json.dump(self.continuous_variable_list, o)
@@ -60,6 +62,7 @@ class TestGetCohortAttritionTableSubcommand(unittest.TestCase):
                 outcome=self.continuous_outcome,
                 prefixed_breakdown_concept_id="ID_3",
                 output_prefix="/some/path/my_gwas_project",
+                output_combined_json=fpath2,
             )
             variable_list_str = json.dumps(self.continuous_variable_list)
             variable_objects = json.loads(
@@ -74,12 +77,19 @@ class TestGetCohortAttritionTableSubcommand(unittest.TestCase):
             with mock.patch(
                 "vadc_gwas_tools.subcommands.get_attrition_csv.CohortServiceClient"
             ) as mock_client, mock.patch(
-                "vadc_gwas_tools.subcommands.get_attrition_csv.json"
-            ) as mock_json:
+                "vadc_gwas_tools.subcommands.get_attrition_csv.json.load"
+            ) as mock_json_load, mock.patch(
+                "vadc_gwas_tools.subcommands.get_attrition_csv.json.loads"
+            ) as mock_json_loads:
                 instance = mock_client.return_value
                 instance.get_attrition_breakdown_csv.return_value = None
-                mock_json.load.return_value = variable_objects[:]
-                mock_json.loads.return_value = outcome_val
+                mock_json_load.return_value = variable_objects[:]
+                mock_json_loads.return_value = outcome_val
+
+                MOD._format_attrition_for_json = mock.MagicMock(
+                    return_value={'test': "test"}
+                )
+
                 # Call main()
                 MOD.main(args)
 
@@ -91,11 +101,22 @@ class TestGetCohortAttritionTableSubcommand(unittest.TestCase):
                     variable_objects,
                     args.prefixed_breakdown_concept_id,
                 )
+
+                MOD._format_attrition_for_json.assert_called_once()
+                MOD._format_attrition_for_json.assert_called_with(
+                    f"{args.output_prefix}.source_cohort.attrition_table.csv", "case"
+                )
+
+            with open(fpath2, 'rt') as fh:
+                obs = json.load(fh)
+                self.assertEqual([{'test': "test"}], obs)
+
         finally:
-            cleanup_files(fpath1)
+            cleanup_files([fpath1, fpath2])
 
     def test_main_case_control(self):
         (_, fpath1) = tempfile.mkstemp()
+        (_, fpath2) = tempfile.mkstemp()
         try:
             with open(fpath1, 'wt') as o:
                 json.dump(self.binary_variable_list, o)
@@ -106,6 +127,7 @@ class TestGetCohortAttritionTableSubcommand(unittest.TestCase):
                 outcome=self.binary_outcome,
                 prefixed_breakdown_concept_id="ID_3",
                 output_prefix="/some/path/my_gwas_project",
+                output_combined_json=fpath2,
             )
             variable_list_str = json.dumps(self.binary_variable_list)
             variable_objects = json.loads(
@@ -133,29 +155,37 @@ class TestGetCohortAttritionTableSubcommand(unittest.TestCase):
                 cohort_ids=[20, 300],
                 provided_name="Control cohort only",
             )
-            control_variable_list.insert(1, new_control_dvar)
+            control_variable_list.insert(0, new_control_dvar)
             case_variable_list = variable_objects[:]
             new_case_dvar = CustomDichotomousVariableObject(
                 variable_type="custom_dichotomous",
                 cohort_ids=[10, 300],
                 provided_name="Case cohort only",
             )
-            case_variable_list.insert(1, new_case_dvar)
-            #mock_binary_list.return_value = (control_variable_list, case_variable_list)
+            case_variable_list.insert(0, new_case_dvar)
+            # mock_binary_list.return_value = (control_variable_list, case_variable_list)
 
             with mock.patch(
                 "vadc_gwas_tools.subcommands.get_attrition_csv.CohortServiceClient"
             ) as mock_client, mock.patch(
-                "vadc_gwas_tools.subcommands.get_attrition_csv.json"
-            ) as mock_json, mock.patch(
+                "vadc_gwas_tools.subcommands.get_attrition_csv.json.load"
+            ) as mock_json_load, mock.patch(
+                "vadc_gwas_tools.subcommands.get_attrition_csv.json.loads"
+            ) as mock_json_loads, mock.patch(
                 "vadc_gwas_tools.subcommands.get_attrition_csv.GetCohortAttritionTable._get_case_control_variable_lists_"
             ) as mock_binary_list:
                 instance = mock_client.return_value
                 instance.get_attrition_breakdown_csv.return_value = None
-                mock_json.load.return_value = variable_objects
-                mock_json.loads.return_value = outcome_val
-                mock_binary_list.return_value = (control_variable_list, case_variable_list)
-                
+                mock_json_load.return_value = variable_objects
+                mock_json_loads.return_value = outcome_val
+                mock_binary_list.return_value = (
+                    control_variable_list,
+                    case_variable_list,
+                )
+
+                MOD._format_attrition_for_json = mock.MagicMock(
+                    side_effect=[{'case': 'case'}, {'control': 'control'}]
+                )
                 # call main()
                 MOD.main(args)
 
@@ -178,8 +208,27 @@ class TestGetCohortAttritionTableSubcommand(unittest.TestCase):
                         ),
                     ]
                 )
+
+                self.assertEqual(MOD._format_attrition_for_json.call_count, 2)
+                MOD._format_attrition_for_json.assert_has_calls(
+                    [
+                        mock.call(
+                            f"{args.output_prefix}.case_cohort.attrition_table.csv",
+                            "case",
+                        ),
+                        mock.call(
+                            f"{args.output_prefix}.control_cohort.attrition_table.csv",
+                            "control",
+                        ),
+                    ]
+                )
+
+            with open(fpath2, 'rt') as fh:
+                obs = json.load(fh)
+                self.assertEqual([{'case': 'case'}, {'control': 'control'}], obs)
+
         finally:
-            cleanup_files(fpath1)
+            cleanup_files([fpath1, fpath2])
 
     def test_get_control_case_variable_list(self):
         variable_list_str = json.dumps(self.binary_variable_list)
@@ -195,5 +244,303 @@ class TestGetCohortAttritionTableSubcommand(unittest.TestCase):
             control_variable_list,
             case_variable_list,
         ) = MOD._get_case_control_variable_lists_(variable_objects, outcome_val, 300)
-        self.assertEqual(control_variable_list[1].cohort_ids, [20, 300])
-        self.assertEqual(case_variable_list[1].cohort_ids, [10, 300])
+        self.assertEqual(control_variable_list[0].cohort_ids, [20, 300])
+        self.assertEqual(case_variable_list[0].cohort_ids, [10, 300])
+
+    def test_format_attrition_for_json_continuous(self):
+        case_csv_data = [
+            [
+                'Cohort',
+                'Size',
+                'non-Hispanic Black',
+                'non-Hispanic Asian',
+                'non-Hispanic White',
+                'Hispanic',
+            ],
+            ['Source cohort', '100', '25', '25', '25', '25'],
+            ['Outcome', '100', '25', '25', '25', '25'],
+            ['Covariate', '90', '20', '10', '25', '45'],
+        ]
+        expected = {
+            "table_type": "case",
+            "rows": [
+                {
+                    "type": "cohort",
+                    "name": "Source cohort",
+                    "size": 100,
+                    "concept_breakdown": [
+                        {
+                            "concept_value_name": 'non-Hispanic Black',
+                            "persons_in_cohort_with_value": 25,
+                        },
+                        {
+                            "concept_value_name": 'non-Hispanic Asian',
+                            "persons_in_cohort_with_value": 25,
+                        },
+                        {
+                            "concept_value_name": 'non-Hispanic White',
+                            "persons_in_cohort_with_value": 25,
+                        },
+                        {
+                            "concept_value_name": 'Hispanic',
+                            "persons_in_cohort_with_value": 25,
+                        },
+                    ],
+                },
+                {
+                    "type": "outcome",
+                    "name": "Outcome",
+                    "size": 100,
+                    "concept_breakdown": [
+                        {
+                            "concept_value_name": 'non-Hispanic Black',
+                            "persons_in_cohort_with_value": 25,
+                        },
+                        {
+                            "concept_value_name": 'non-Hispanic Asian',
+                            "persons_in_cohort_with_value": 25,
+                        },
+                        {
+                            "concept_value_name": 'non-Hispanic White',
+                            "persons_in_cohort_with_value": 25,
+                        },
+                        {
+                            "concept_value_name": 'Hispanic',
+                            "persons_in_cohort_with_value": 25,
+                        },
+                    ],
+                },
+                {
+                    "type": "covariate",
+                    "name": "Covariate",
+                    "size": 90,
+                    "concept_breakdown": [
+                        {
+                            "concept_value_name": 'non-Hispanic Black',
+                            "persons_in_cohort_with_value": 20,
+                        },
+                        {
+                            "concept_value_name": 'non-Hispanic Asian',
+                            "persons_in_cohort_with_value": 10,
+                        },
+                        {
+                            "concept_value_name": 'non-Hispanic White',
+                            "persons_in_cohort_with_value": 25,
+                        },
+                        {
+                            "concept_value_name": 'Hispanic',
+                            "persons_in_cohort_with_value": 45,
+                        },
+                    ],
+                },
+            ],
+        }
+
+        (_, fpath1) = tempfile.mkstemp()
+        with open(fpath1, 'wt') as o:
+            for row in case_csv_data:
+                o.write(",".join(row) + "\n")
+        try:
+            obs = MOD._format_attrition_for_json(fpath1, 'case')
+            self.assertEqual(obs, expected)
+        finally:
+            cleanup_files(fpath1)
+
+    def test_format_attrition_for_json_dichotomous(self):
+        case_csv_data = [
+            [
+                'Cohort',
+                'Size',
+                'non-Hispanic Black',
+                'non-Hispanic Asian',
+                'non-Hispanic White',
+                'Hispanic',
+            ],
+            ['Source cohort', '100', '25', '25', '25', '25'],
+            ['Case cohort only', '100', '25', '25', '25', '25'],
+            ['Outcome', '100', '25', '25', '25', '25'],
+            ['Covariate', '90', '20', '10', '25', '45'],
+        ]
+        expected = {
+            "table_type": "case",
+            "rows": [
+                {
+                    "type": "cohort",
+                    "name": "Source cohort",
+                    "size": 100,
+                    "concept_breakdown": [
+                        {
+                            "concept_value_name": 'non-Hispanic Black',
+                            "persons_in_cohort_with_value": 25,
+                        },
+                        {
+                            "concept_value_name": 'non-Hispanic Asian',
+                            "persons_in_cohort_with_value": 25,
+                        },
+                        {
+                            "concept_value_name": 'non-Hispanic White',
+                            "persons_in_cohort_with_value": 25,
+                        },
+                        {
+                            "concept_value_name": 'Hispanic',
+                            "persons_in_cohort_with_value": 25,
+                        },
+                    ],
+                },
+                {
+                    "type": "outcome",
+                    "name": "Outcome",
+                    "size": 100,
+                    "concept_breakdown": [
+                        {
+                            "concept_value_name": 'non-Hispanic Black',
+                            "persons_in_cohort_with_value": 25,
+                        },
+                        {
+                            "concept_value_name": 'non-Hispanic Asian',
+                            "persons_in_cohort_with_value": 25,
+                        },
+                        {
+                            "concept_value_name": 'non-Hispanic White',
+                            "persons_in_cohort_with_value": 25,
+                        },
+                        {
+                            "concept_value_name": 'Hispanic',
+                            "persons_in_cohort_with_value": 25,
+                        },
+                    ],
+                },
+                {
+                    "type": "covariate",
+                    "name": "Covariate",
+                    "size": 90,
+                    "concept_breakdown": [
+                        {
+                            "concept_value_name": 'non-Hispanic Black',
+                            "persons_in_cohort_with_value": 20,
+                        },
+                        {
+                            "concept_value_name": 'non-Hispanic Asian',
+                            "persons_in_cohort_with_value": 10,
+                        },
+                        {
+                            "concept_value_name": 'non-Hispanic White',
+                            "persons_in_cohort_with_value": 25,
+                        },
+                        {
+                            "concept_value_name": 'Hispanic',
+                            "persons_in_cohort_with_value": 45,
+                        },
+                    ],
+                },
+            ],
+        }
+
+        (_, fpath1) = tempfile.mkstemp()
+        with open(fpath1, 'wt') as o:
+            for row in case_csv_data:
+                o.write(",".join(row) + "\n")
+        try:
+            obs = MOD._format_attrition_for_json(fpath1, 'case')
+            self.assertEqual(obs, expected)
+        finally:
+            cleanup_files(fpath1)
+
+        control_csv_data = [
+            [
+                'Cohort',
+                'Size',
+                'non-Hispanic Black',
+                'non-Hispanic Asian',
+                'non-Hispanic White',
+                'Hispanic',
+            ],
+            ['Source cohort', '100', '25', '25', '25', '25'],
+            ['Control cohort only', '90', '25', '25', '25', '25'],
+            ['Outcome', '80', '25', '25', '25', '25'],
+            ['Covariate', '60', '20', '10', '25', '45'],
+        ]
+        expected = {
+            "table_type": "control",
+            "rows": [
+                {
+                    "type": "cohort",
+                    "name": "Source cohort",
+                    "size": 100,
+                    "concept_breakdown": [
+                        {
+                            "concept_value_name": 'non-Hispanic Black',
+                            "persons_in_cohort_with_value": 25,
+                        },
+                        {
+                            "concept_value_name": 'non-Hispanic Asian',
+                            "persons_in_cohort_with_value": 25,
+                        },
+                        {
+                            "concept_value_name": 'non-Hispanic White',
+                            "persons_in_cohort_with_value": 25,
+                        },
+                        {
+                            "concept_value_name": 'Hispanic',
+                            "persons_in_cohort_with_value": 25,
+                        },
+                    ],
+                },
+                {
+                    "type": "outcome",
+                    "name": "Outcome",
+                    "size": 80,
+                    "concept_breakdown": [
+                        {
+                            "concept_value_name": 'non-Hispanic Black',
+                            "persons_in_cohort_with_value": 25,
+                        },
+                        {
+                            "concept_value_name": 'non-Hispanic Asian',
+                            "persons_in_cohort_with_value": 25,
+                        },
+                        {
+                            "concept_value_name": 'non-Hispanic White',
+                            "persons_in_cohort_with_value": 25,
+                        },
+                        {
+                            "concept_value_name": 'Hispanic',
+                            "persons_in_cohort_with_value": 25,
+                        },
+                    ],
+                },
+                {
+                    "type": "covariate",
+                    "name": "Covariate",
+                    "size": 60,
+                    "concept_breakdown": [
+                        {
+                            "concept_value_name": 'non-Hispanic Black',
+                            "persons_in_cohort_with_value": 20,
+                        },
+                        {
+                            "concept_value_name": 'non-Hispanic Asian',
+                            "persons_in_cohort_with_value": 10,
+                        },
+                        {
+                            "concept_value_name": 'non-Hispanic White',
+                            "persons_in_cohort_with_value": 25,
+                        },
+                        {
+                            "concept_value_name": 'Hispanic',
+                            "persons_in_cohort_with_value": 45,
+                        },
+                    ],
+                },
+            ],
+        }
+
+        (_, fpath2) = tempfile.mkstemp()
+        with open(fpath2, 'wt') as o:
+            for row in control_csv_data:
+                o.write(",".join(row) + "\n")
+        try:
+            obs = MOD._format_attrition_for_json(fpath2, 'control')
+            self.assertEqual(obs, expected)
+        finally:
+            cleanup_files(fpath2)
