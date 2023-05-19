@@ -12,6 +12,7 @@ import os
 from argparse import ArgumentParser, Namespace
 from typing import List, TextIO, Tuple
 
+from vadc_gwas_tools.common.const import STATS_COLUMN_PVAL, STATS_COLUMN_SPA_PVAL
 from vadc_gwas_tools.common.logger import Logger
 from vadc_gwas_tools.common.top_hits_heap import GwasHit, TopHitsHeap
 from vadc_gwas_tools.subcommands import Subcommand
@@ -116,13 +117,23 @@ class CurateGwasHits(Subcommand):
             with gzip.open(csv_file, 'rt') as fh:
                 reader = csv.reader(fh)
                 header = next(reader)
+
+                if STATS_COLUMN_PVAL in header:
+                    pval_key = STATS_COLUMN_PVAL
+                elif STATS_COLUMN_SPA_PVAL in header:
+                    pval_key = STATS_COLUMN_SPA_PVAL
+                else:
+                    raise AssertionError(
+                        f"Unable to find {STATS_COLUMN_PVAL} or {STATS_COLUMN_SPA_PVAL} in {header}"
+                    )
+
                 if oheader is None:
                     oheader = header
                     writer.writerow(oheader)
 
                 for row in reader:
                     row = dict(zip(header, row))
-                    pval = float(row['Score.pval'])
+                    pval = float(row[pval_key])
                     record = GwasHit(pvalue=-1.0 * pval, item=row)
                     top_hits_heap += record
                     if pval <= cutoff:
