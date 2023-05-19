@@ -12,6 +12,7 @@ from vadc_gwas_tools.common.cohort_middleware import (
     ConceptVariableObject,
     CustomDichotomousVariableObject,
 )
+from vadc_gwas_tools.common.const import CASE_COUNTS_VAR_ID, CONTROL_COUNTS_VAR_ID
 from vadc_gwas_tools.subcommands import GetCohortAttritionTable as MOD
 
 
@@ -154,17 +155,16 @@ class TestGetCohortAttritionTableSubcommand(unittest.TestCase):
             new_control_dvar = CustomDichotomousVariableObject(
                 variable_type="custom_dichotomous",
                 cohort_ids=[20, 300],
-                provided_name="Control cohort only",
+                provided_name=CONTROL_COUNTS_VAR_ID,
             )
             control_variable_list.insert(0, new_control_dvar)
             case_variable_list = variable_objects[:]
             new_case_dvar = CustomDichotomousVariableObject(
                 variable_type="custom_dichotomous",
                 cohort_ids=[10, 300],
-                provided_name="Case cohort only",
+                provided_name=CASE_COUNTS_VAR_ID,
             )
             case_variable_list.insert(0, new_case_dvar)
-            # mock_binary_list.return_value = (control_variable_list, case_variable_list)
 
             with mock.patch(
                 "vadc_gwas_tools.subcommands.get_attrition_csv.CohortServiceClient"
@@ -358,7 +358,7 @@ class TestGetCohortAttritionTableSubcommand(unittest.TestCase):
                 'Hispanic',
             ],
             ['Source cohort', '100', '25', '25', '25', '25'],
-            ['Case cohort only', '100', '25', '25', '25', '25'],
+            [CASE_COUNTS_VAR_ID, '100', '25', '25', '25', '25'],
             ['Outcome', '100', '25', '25', '25', '25'],
             ['Covariate', '90', '20', '10', '25', '45'],
         ]
@@ -457,7 +457,7 @@ class TestGetCohortAttritionTableSubcommand(unittest.TestCase):
                 'Hispanic',
             ],
             ['Source cohort', '100', '25', '25', '25', '25'],
-            ['Control cohort only', '90', '25', '25', '25', '25'],
+            [CONTROL_COUNTS_VAR_ID, '90', '25', '25', '25', '25'],
             ['Outcome', '80', '25', '25', '25', '25'],
             ['Covariate', '60', '20', '10', '25', '45'],
         ]

@@ -13,6 +13,7 @@ from vadc_gwas_tools.common.cohort_middleware import (
     ConceptVariableObject,
     CustomDichotomousVariableObject,
 )
+from vadc_gwas_tools.common.const import CASE_COUNTS_VAR_ID, CONTROL_COUNTS_VAR_ID
 from vadc_gwas_tools.common.logger import Logger
 from vadc_gwas_tools.subcommands import Subcommand
 
@@ -207,12 +208,12 @@ class GetCohortAttritionTable(Subcommand):
         new_control_dvar = CustomDichotomousVariableObject(
             variable_type="custom_dichotomous",
             cohort_ids=control_call_cohort_ids,
-            provided_name="Control cohort only",
+            provided_name=CONTROL_COUNTS_VAR_ID,
         )
         new_case_dvar = CustomDichotomousVariableObject(
             variable_type="custom_dichotomous",
             cohort_ids=case_call_cohort_ids,
-            provided_name="Case cohort only",
+            provided_name=CASE_COUNTS_VAR_ID,
         )
         control_variable_list.insert(0, new_control_dvar)
         case_variable_list.insert(0, new_case_dvar)
@@ -272,8 +273,8 @@ class GetCohortAttritionTable(Subcommand):
                 try:
                     row_dict = dict(zip(header, next(reader)))
                     if row_dict.get('Cohort', '') in (
-                        'Control cohort only',
-                        'Case cohort only',
+                        CASE_COUNTS_VAR_ID,
+                        CONTROL_COUNTS_VAR_ID,
                     ):
                         continue
                     if not seen_outcome:
