@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import yaml
 from pheweb.file_utils import VariantFileReader, write_json
 from pheweb.load.manhattan import Binner
+from pheweb.load.qq import make_json_file_explicit
 
 from vadc_gwas_tools.common.logger import Logger
 from vadc_gwas_tools.subcommands import Subcommand
@@ -61,8 +62,8 @@ class GetPheWebPlotJson(Subcommand):
             data = binner.get_result()
             write_json(filepath=options.out_json, data=data)
         elif options.out_plot_type == 'qq':
-            # TODO
-            pass
+            # read tsv and convert to PheWeb qq plot json file format:
+            make_json_file_explicit(in_filepath=options.in_tsv, out_filepath=options.out_json, pheno={})
 
     @classmethod
     def __get_description__(cls) -> str:
