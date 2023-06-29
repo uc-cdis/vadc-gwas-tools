@@ -17,8 +17,112 @@ class _mock_args(NamedTuple):
 
 
 class TestGetPheWebPlotJsonSubcommand(unittest.TestCase):
-    def test_main_ok(self):
+    def test_main_manhattan_ok(self):
+        (_, tmp_in_tsv_path) = tempfile.mkstemp(suffix=".tsv")
 
+        with open(tmp_in_tsv_path, "wt") as o:
+            writer = csv.writer(o, delimiter="\t")
+            writer.writerow(
+                [
+                    "chrom",
+                    "pos",
+                    "ref",
+                    "alt",
+                    "rsids",
+                    "nearest_genes",
+                    "pval",
+                    "beta",
+                    "sebeta",
+                    "maf",
+                    "ac",
+                    "r2",
+                ]
+            )
+            writer.writerow(
+                [
+                    "1",
+                    "662622",
+                    "G",
+                    "A",
+                    "rs61769339",
+                    "OR4F16",
+                    "0.97",
+                    "0.0014",
+                    "0.037",
+                    "0.076",
+                    "896.0",
+                    "2.3e-07",
+                ]
+            )
+            writer.writerow(
+                [
+                    "1",
+                    "722429",
+                    "G",
+                    "A",
+                    "",
+                    "OR4F16",
+                    "0.5",
+                    "-0.14",
+                    "0.21",
+                    "0.0022",
+                    "26.0",
+                    "7.7e-05",
+                ]
+            )
+
+        expected = json.dumps(
+            {
+                "variant_bins": [],
+                "unbinned_variants": [
+                    {
+                        "chrom": "1",
+                        "pos": 722429,
+                        "ref": "G",
+                        "alt": "A",
+                        "rsids": "",
+                        "nearest_genes": "OR4F16",
+                        "pval": 0.5,
+                        "beta": -0.14,
+                        "sebeta": 0.21,
+                        "maf": 0.0022,
+                        "ac": 26.0,
+                        "r2": 7.7e-05,
+                    },
+                    {
+                        "chrom": "1",
+                        "pos": 662622,
+                        "ref": "G",
+                        "alt": "A",
+                        "rsids": "rs61769339",
+                        "nearest_genes": "OR4F16",
+                        "pval": 0.97,
+                        "beta": 0.0014,
+                        "sebeta": 0.037,
+                        "maf": 0.076,
+                        "ac": 896.0,
+                        "r2": 2.3e-07,
+                    },
+                ],
+            },
+            sort_keys=False,
+        )
+
+        # Case with file output; check output against expected ouptut:
+        try:
+            (_, path1) = tempfile.mkstemp()
+            with captured_output() as (_, _):
+                args = _mock_args(
+                    in_tsv=tmp_in_tsv_path, out_json=path1, out_plot_type="manhattan"
+                )
+                MOD.main(args)
+            with open(path1, "rt") as fh:
+                obs = fh.read().rstrip("\r\n")
+            self.assertEqual(expected, obs)
+        finally:
+            cleanup_files(path1)
+
+    def test_main_qq_ok(self):
         (_, tmp_in_tsv_path) = tempfile.mkstemp(suffix=".tsv")
 
         with open(tmp_in_tsv_path, "wt") as o:
@@ -45,85 +149,6 @@ class TestGetPheWebPlotJsonSubcommand(unittest.TestCase):
                 ["10", "130457159", "C", "T", "0.599", "0.261", "0.261", "889"]
             ]
             writer.writerows(tsv_records)
-
-        expected_manhattan_json = json.dumps(
-            {
-                "variant_bins": [],
-                "unbinned_variants": [
-                    {
-                        "chrom": "10",
-                        "pos": 3695498,
-                        "ref": "A",
-                        "alt": "G",
-                        "pval": 0.0394,
-                        "maf": 0.366,
-                        "af": 0.366,
-                        "ac": 1246.0
-                    },
-                    {
-                        "chrom": "10",
-                        "pos": 30951327,
-                        "ref": "C",
-                        "alt": "T",
-                        "pval": 0.159,
-                        "maf": 0.198,
-                        "af": 0.802,
-                        "ac": 2729.0
-                    },
-                    {
-                        "chrom": "10",
-                        "pos": 67382457,
-                        "ref": "T",
-                        "alt": "C",
-                        "pval": 0.165,
-                        "maf": 0.112,
-                        "af": 0.888,
-                        "ac": 3024.0
-                    },
-                    {
-                        "chrom": "10",
-                        "pos": 3686327,
-                        "ref": "C",
-                        "alt": "T",
-                        "pval": 0.262,
-                        "maf": 0.175,
-                        "af": 0.825,
-                        "ac": 2808.0
-                    },
-                    {
-                        "chrom": "10",
-                        "pos": 3686300,
-                        "ref": "C",
-                        "alt": "T",
-                        "pval": 0.366,
-                        "maf": 0.239,
-                        "af": 0.761,
-                        "ac": 2592.0
-                    },
-                    {
-                        "chrom": "10",
-                        "pos": 130258262,
-                        "ref": "T",
-                        "alt": "C",
-                        "pval": 0.433,
-                        "maf": 0.382,
-                        "af": 0.618,
-                        "ac": 2102.0
-                    },
-                    {
-                        "chrom": "10",
-                        "pos": 130457159,
-                        "ref": "C",
-                        "alt": "T",
-                        "pval": 0.599,
-                        "maf": 0.261,
-                        "af": 0.261,
-                        "ac": 889.0
-                    }
-                ]
-            },
-            sort_keys=False,
-        )
 
         expected_qq_json = json.dumps(
             {
@@ -233,15 +258,6 @@ class TestGetPheWebPlotJsonSubcommand(unittest.TestCase):
         # Case with file output; check output against expected ouptut:
         try:
             (_, path1) = tempfile.mkstemp()
-            # generate manhattan json output
-            with captured_output() as (_, _):
-                args_man = _mock_args(
-                    in_tsv=tmp_in_tsv_path, out_json=path1, out_plot_type="manhattan"
-                )
-                MOD.main(args_man)
-            with open(path1, "rt") as fh:
-                obs_man = fh.read().rstrip("\r\n")
-            self.assertEqual(expected_manhattan_json, obs_man)
             
             # generate qq json output
             with captured_output() as (_, _):
