@@ -233,7 +233,6 @@ class TestGetPheWebPlotJsonSubcommand(unittest.TestCase):
         # Case with file output; check output against expected ouptut:
         try:
             (_, path1) = tempfile.mkstemp()
-            #(_, path2) = tempfile.mkdtemp()
             # generate manhattan json output
             with captured_output() as (_, _):
                 args_man = _mock_args(
@@ -254,5 +253,4 @@ class TestGetPheWebPlotJsonSubcommand(unittest.TestCase):
                 obs_qq = fh.read().rstrip("\r\n")
             self.assertEqual(expected_qq_json, obs_qq)
         finally:
-            #cleanup_files([path1, path2])
             cleanup_files(path1)
