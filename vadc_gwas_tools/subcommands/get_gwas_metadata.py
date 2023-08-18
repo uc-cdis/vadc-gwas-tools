@@ -96,6 +96,18 @@ class GetGwasMetadata(Subcommand):
             type=str,
             help="Path to write out the final metadata output.",
         )
+        parser.add_argument(
+            '--pipeline_template',
+            type=str,
+            default='../template/vadc_citation_template.txt',
+            help='pipeline template to complete for the workflow run',
+        )
+        parser.add_argument(
+            "--completed_pipeline_template",
+            required=True,
+            type=str,
+            help='completed pipeline template for the workflow run',
+        )
 
     @classmethod
     def main(cls, options: Namespace) -> None:
@@ -190,7 +202,7 @@ class GetGwasMetadata(Subcommand):
                 custom_dichotomous_variables=custom_dichotomous_variables,
                 custom_dichotomous_cohort_metadata=custom_dichotomous_cohort_metadata,
                 case_cohort_def=case_cohort_def,
-                control_cohort_def=control_cohort_def
+                control_cohort_def=control_cohort_def,
             )
         else:
             formatted_metadata = cls._format_metadata(
@@ -200,7 +212,7 @@ class GetGwasMetadata(Subcommand):
                 concept_data=concept_data,
                 custom_dichotomous_variables=custom_dichotomous_variables,
                 custom_dichotomous_cohort_metadata=custom_dichotomous_cohort_metadata,
-                outcome_data=outcome_data
+                outcome_data=outcome_data,
             )
 
         # Export metadata
@@ -208,6 +220,21 @@ class GetGwasMetadata(Subcommand):
         logger.info((f"Output: {options.output} "))
         with open(options.output, "w") as o:
             yaml.dump(formatted_metadata, o, default_flow_style=False, sort_keys=False)
+
+        # Write out workflow blurb for publication
+        logger.info(
+            'Generating a completed workflow template for pipeline configuration'
+        )
+        with open(options.citation_blurb, 'r') as f:
+            workflow_params = f.read()
+        workflow_config = workflow_params.format(
+            options.maf_threshold,
+            options.imputation_score_cutoff,
+            options.n_pcs,
+            options.hare_population,
+        )
+        with open(options.completed_pipeline_template, 'w') as template_out:
+            template_out.write(workflow_config)
 
     @classmethod
     def _get_variable_lists(
@@ -289,7 +316,7 @@ class GetGwasMetadata(Subcommand):
             "imputation_score_cutoff": options.imputation_score_cutoff,
             "hare_population": options.hare_population,
             "pvalue_cutoff": options.pvalue_cutoff,
-            "top_n_hits": options.top_n_hits
+            "top_n_hits": options.top_n_hits,
         }
 
         # Outcome section
@@ -299,14 +326,14 @@ class GetGwasMetadata(Subcommand):
             outcome_section_items = list(outcome_section.items())
             outcome_section_items.insert(0, ("type", "CONTINUOUS"))
             outcome_section = dict(outcome_section_items)
-        else:  # case-control workflow 
+        else:  # case-control workflow
             outcome_section = {
                 "type": "CASE-CONTROL",
                 "concept_name": outcome.provided_name,
-                "concept_cohorts" : {
+                "concept_cohorts": {
                     "case_cohort": dataclasses.asdict(case_cohort_def),
-                    "control_cohort": dataclasses.asdict(control_cohort_def)
-                }
+                    "control_cohort": dataclasses.asdict(control_cohort_def),
+                },
             }
 
         # Clinical covariables section
@@ -324,13 +351,13 @@ class GetGwasMetadata(Subcommand):
                 record.append(cohort)
             cd_dict = {"custom_dichotomous": {"cohorts": record}}
             covariates.append(cd_dict)
-        
+
         # Put it all together and return dict
         data = {
             "source_cohort": source_cohort,
             "covariates": covariates,
             "parameters": parameters,
-            "outcome": outcome_section
+            "outcome": outcome_section,
         }
         return data
 

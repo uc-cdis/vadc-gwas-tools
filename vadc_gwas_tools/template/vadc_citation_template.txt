@@ -1,0 +1,18 @@
+The VADC GWAS pipeline uses several R scripts developed by the Genetic Analysis Center (GAC) at the University of Washington (https://github.com/UW-GAC/analysis_pipeline/tree/master/R) which are built around the GENESIS R package (Gogarten et al. 2019). Ancestry groups (Non-Hispanic Black, Non-Hispanic Asian, Non-Hispanic White, Hispanic) were assigned according to the HARE designations (Fang et al. 2019). Population principal components were estimated across all populations as described previously (Hunter-Zinck et al. 2020). A sparse Genetic Relatedness Matrix (GRM) was generated out to the third degree with the KING algorithm (Manichaikul et al. 2010).
+
+Markers with low frequency alleles (MAF < {0}) or low imputation quality < {1} were removed. The GENESIS package first runs a ‘null model’ of no association under the null hypothesis that each SNP has no effect. The null model includes the outcome phenotype (continuous outcomes are inverse normal transformed) and all covariates, including the first {2} PCs for HARE population {3} as fixed effects while genetic relatedness is controlled as a random effect. The null model does not include any SNP genotype terms as fixed effects. Dichotomous outcomes are fit with a “binomial” family while continuous outcomes are fit as a “gaussian” family. Next, the parameters estimated by the ‘null model’ are used to run single marker associations, where SNPs are tested for association with the outcome in a computationally efficient manner. For dichotomous outcomes, the saddlepoint approximation (SPA) is applied to calibrate unbalanced case-control ratios similar to SAIGE (Zhou et al. 2018). Variants are annotated with closest gene(s) and dbSNP IDs by VEP release 105 (McLaren et al. 2016) and both the top 100 GWAS hits and those with a p-value < 5e-8 are curated.
+
+
+References
+
+Fang H, Hui Q, Lynch J, Honerlaw J, Assimes TL, Huang J, Vujkovic M, Damrauer SM, Pyarajan S, Gaziano JM, et al. 2019. Harmonizing Genetic Ancestry and Self-identified Race/Ethnicity in Genome-wide Association Studies.  Am J Hum Genet 105: 763–772.
+
+Gogarten SM, Sofer T, Chen H, Yu C, Brody JA, Thornton TA, Rice KM, Conomos MP. 2019. Genetic association testing using the GENESIS R/Bioconductor package. Bioinformatics 35: 5346–5348.
+
+Hunter-Zinck H, Shi Y, Li M, Gorman BR, Ji S-G, Sun N, Webster T, Liem A, Hsieh P, Devineni P, et al. 2020. Genotyping Array Design and Data Quality Control in the Million Veteran Program.  Am J Hum Genet 106: 535–548.
+
+Manichaikul A, Mychaleckyj JC, Rich SS, Daly K, Sale M, Chen W-M. 2010. Robust relationship inference in genome-wide association studies. Bioinformatics 26: 2867–2873.
+
+McLaren W, Gil L, Hunt SE, Riat HS, Ritchie GRS, Thormann A, Flicek P, Cunningham F. 2016. The Ensembl Variant Effect Predictor. Genome Biol 17: 122.
+
+Zhou W, Nielsen JB, Fritsche LG, Dey R, Gabrielsen ME, Wolford BN, LeFaive J, VandeHaar P, Gagliano SA, Gifford A, et al. 2018. Efficiently controlling for case-control imbalance and sample relatedness in large-scale genetic association studies. Nat Genet 50: 1335–1341.
