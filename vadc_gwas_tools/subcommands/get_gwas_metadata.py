@@ -225,9 +225,9 @@ class GetGwasMetadata(Subcommand):
         logger.info(
             'Generating a completed workflow template for pipeline configuration'
         )
-        with open(options.citation_blurb, 'r') as f:
-            workflow_params = f.read()
-        workflow_config = workflow_params.format(
+        with open(options.pipeline_template, 'r') as f:
+            workflow_blurb = f.read()
+        workflow_config = workflow_blurb.format(
             options.maf_threshold,
             options.imputation_score_cutoff,
             options.n_pcs,
