@@ -99,7 +99,6 @@ class GetGwasMetadata(Subcommand):
         parser.add_argument(
             '--pipeline_template',
             type=str,
-            default='../template/vadc_citation_template.txt',
             help='pipeline template to complete for the workflow run',
         )
         parser.add_argument(

@@ -130,3 +130,7 @@ dmypy.json
 
 .vscode
 .tmp
+
+# idea stuff
+../.idea/
+.idea/
