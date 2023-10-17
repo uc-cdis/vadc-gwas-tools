@@ -18,6 +18,6 @@ class WorkspaceTokenServiceClient:
 
     def get_refresh_token(self, _di=requests) -> Dict[str, str]:
         """Hits the WTS endpoint to get the refresh token."""
-        req = _di.get(f"{self.service_url}/token", params={"idp": "default"})
+        req = _di.get(f"{self.service_url}/token/", params={"idp": "default"})
         req.raise_for_status()
         return req.json()
