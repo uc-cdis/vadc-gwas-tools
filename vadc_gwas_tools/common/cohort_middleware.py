@@ -80,7 +80,7 @@ class CohortServiceClient:
             data=json.dumps(payload),
             headers=self.get_header(),
             stream=True,
-            timeout=(6.05, 180),
+            timeout=(6.05, 200),
         )
         req.raise_for_status()
         self.logger.info(f"Writing output to {local_path}...")
@@ -158,7 +158,7 @@ class CohortServiceClient:
             data=json.dumps(payload),
             headers=self.get_header(),
             stream=True,
-            timeout=(6.05, 180),
+            timeout=(6.05, len(payload['variables']) * 180),
         )
         req.raise_for_status()
         self.logger.info(f"Writing output to {local_path}...")
