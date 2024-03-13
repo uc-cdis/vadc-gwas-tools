@@ -444,7 +444,7 @@ class TestCohortServiceClient(unittest.TestCase):
                     "Authorization": "Bearer abc",
                 },
                 stream=True,
-                timeout=(6.05, 200),
+                timeout=(6.05, 540),
             )
 
             with self.assertRaises(OSError) as _:
