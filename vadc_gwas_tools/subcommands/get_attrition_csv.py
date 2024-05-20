@@ -227,13 +227,7 @@ class GetCohortAttritionTable(Subcommand):
         Converts a single attrition CSV into a JSON serializable object.
         """
 
-        def format_row(row, rtype):
-            hare_cols = [
-                'non-Hispanic Black',
-                'non-Hispanic Asian',
-                'non-Hispanic White',
-                'Hispanic',
-            ]
+        def format_row(row, rtype, hare_cols):
             fmt_row = {
                 "type": rtype,
                 "name": row.get('Cohort', ''),
@@ -261,10 +255,10 @@ class GetCohortAttritionTable(Subcommand):
         with open(attrition_csv, 'rt') as fh:
             reader = csv.reader(fh)
             header = next(reader)
-
+            hare_columns = header[2:]
             # First line is source
             row_dict = dict(zip(header, next(reader)))
-            curr = format_row(row_dict, "cohort")
+            curr = format_row(row_dict, "cohort", hare_columns)
             ret["rows"].append(curr)
 
             # Helpers
@@ -278,11 +272,11 @@ class GetCohortAttritionTable(Subcommand):
                     ):
                         continue
                     if not seen_outcome:
-                        curr = format_row(row_dict, "outcome")
+                        curr = format_row(row_dict, "outcome", hare_columns)
                         ret["rows"].append(curr)
                         seen_outcome = True
                     else:
-                        curr = format_row(row_dict, "covariate")
+                        curr = format_row(row_dict, "covariate", hare_columns)
                         ret["rows"].append(curr)
                 except StopIteration:
                     break
