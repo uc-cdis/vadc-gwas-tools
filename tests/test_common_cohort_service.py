@@ -243,6 +243,7 @@ class TestCohortServiceClient(unittest.TestCase):
                 "cohort_definition_id": 9,
                 "cohort_name": "Test",
                 "cohort_description": "Some test cohort",
+                "Expression":"{\"CriteriaList\":\"\Observation\"}"
             }
         }
         self.mocks.requests.get.return_value = mock_proc
@@ -250,6 +251,7 @@ class TestCohortServiceClient(unittest.TestCase):
             cohort_definition_id=9,
             cohort_name="Test",
             cohort_description="Some test cohort",
+            Expression="{\"CriteriaList\":\"\Observation\"}"
         )
 
         obj = MOD()
