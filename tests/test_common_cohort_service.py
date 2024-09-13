@@ -251,7 +251,7 @@ class TestCohortServiceClient(unittest.TestCase):
             cohort_definition_id=9,
             cohort_name="Test",
             cohort_description="Some test cohort",
-            cohort_expression="{\"CriteriaList\":\"\Observation\"}"
+            cohort_definition_json="{\"CriteriaList\":\"\Observation\"}"
         )
 
         obj = MOD()
