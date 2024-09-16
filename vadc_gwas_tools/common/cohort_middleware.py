@@ -19,6 +19,7 @@ class CohortDefinitionResponse:
     cohort_definition_id: int
     cohort_name: str
     cohort_description: Optional[str] = None
+    cohort_definition_json: Optional[str] = None
 
 
 @dataclass
@@ -107,6 +108,7 @@ class CohortServiceClient:
             cohort_definition_id=response["cohort_definition"]["cohort_definition_id"],
             cohort_name=response["cohort_definition"]["cohort_name"],
             cohort_description=response["cohort_definition"]["cohort_description"],
+            cohort_definition_json=response["cohort_definition"]["Expression"]
         )
 
     def get_concept_descriptions(

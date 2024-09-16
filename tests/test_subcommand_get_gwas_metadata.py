@@ -33,11 +33,12 @@ class MockArgs(NamedTuple):
     output: str
 
 
-def make_cohort_def(cohort_definition_id, cohort_name, cohort_description):
+def make_cohort_def(cohort_definition_id, cohort_name, cohort_description, cohort_definition_json):
     return CohortDefinitionResponse(
         cohort_definition_id=cohort_definition_id,
         cohort_name=cohort_name,
         cohort_description=cohort_description,
+        cohort_definition_json=cohort_definition_json
     )
 
 
@@ -82,9 +83,9 @@ class TestGetGwasMetadataSubcommand_CustomDichotomousCohortMetadata(unittest.Tes
         ]
 
         cohort_defs = [
-            make_cohort_def(1, "A", "Something A"),
-            make_cohort_def(2, "B", "Something B"),
-            make_cohort_def(4, "C", "Something C"),
+            make_cohort_def(1, "A", "Something A", "{\"CriteriaList\":\"\ObservationA\"}"),
+            make_cohort_def(2, "B", "Something B", "{\"CriteriaList\":\"\ObservationB\"}"),
+            make_cohort_def(4, "C", "Something C", "{\"CriteriaList\":\"\ObservationC\"}"),
         ]
         mock_client = mock.MagicMock(spec_set=CohortServiceClient)
         mock_client.get_cohort_definition.side_effect = cohort_defs
@@ -138,9 +139,9 @@ class GetGwasMetadataSubcommand_SharedObjects(unittest.TestCase):
             ),
         ]
         self.custom_dichotomous_cohort_meta = {
-            1: make_cohort_def(1, "A", "Something A"),
-            2: make_cohort_def(2, "B", "Something B"),
-            4: make_cohort_def(4, "C", "Something C"),
+            1: make_cohort_def(1, "A", "Something A", "{\"CriteriaList\":\"\ObservationA\"}"),
+            2: make_cohort_def(2, "B", "Something B", "{\"CriteriaList\":\"\ObservationB\"}"),
+            4: make_cohort_def(4, "C", "Something C", "{\"CriteriaList\":\"\ObservationC\"}"),
         }
 
     def get_mock_args(self, variables_json, outcome, output, case_control=False):
@@ -189,7 +190,7 @@ class GetGwasMetadataSubcommand_FormatMetadata(GetGwasMetadataSubcommand_SharedO
         )
 
         source_population_cohort_def = make_cohort_def(
-            args.source_population_cohort, "SourceCohort", "Fake"
+            args.source_population_cohort, "SourceCohort", "Fake", "{\"CriteriaList\":\"\ObservationSource\"}"
         )
         outcome_section = dataclasses.asdict(self.concept_defs[0])
         outcome_section["type"] = "CONTINUOUS"
@@ -230,11 +231,11 @@ class GetGwasMetadataSubcommand_FormatMetadata(GetGwasMetadataSubcommand_SharedO
             case_control=True,
         )
         source_population_cohort_def = make_cohort_def(
-            args.source_population_cohort, "SourceCohort", "Fake"
+            args.source_population_cohort, "SourceCohort", "Fake", "{\"CriteriaList\":\"\ObservationSource\"}"
         )
         outcome = self.outcome_case_control
-        case_cohort_def = make_cohort_def(outcome.cohort_ids[1], "CASE", "Fake")
-        control_cohort_def = make_cohort_def(outcome.cohort_ids[0], "CONTROL", "Fake")
+        case_cohort_def = make_cohort_def(outcome.cohort_ids[1], "CASE", "Fake", "{\"CriteriaList\":\"\ObservationCase\"}")
+        control_cohort_def = make_cohort_def(outcome.cohort_ids[0], "CONTROL", "Fake", "{\"CriteriaList\":\"\ObservationControl\"}")
         outcome_section = {
             "type": "CASE-CONTROL",
             "concept_name": "test123",
@@ -299,7 +300,7 @@ class GetGwasMetadataSubcommand_Main(GetGwasMetadataSubcommand_SharedObjects):
                 o,
             )
         source_population_cohort_def = make_cohort_def(
-            args.source_population_cohort, "SourceCohort", "Fake"
+            args.source_population_cohort, "SourceCohort", "Fake", "{\"CriteriaList\":\"\ObservationSource\"}"
         )
         outcome_section = dataclasses.asdict(self.concept_defs[0])
         outcome_section["type"] = "CONTINUOUS"
@@ -381,11 +382,11 @@ class GetGwasMetadataSubcommand_Main(GetGwasMetadataSubcommand_SharedObjects):
             )
 
         source_population_cohort_def = make_cohort_def(
-            args.source_population_cohort, "SourceCohort", "Fake"
+            args.source_population_cohort, "SourceCohort", "Fake", "{\"CriteriaList\":\"\ObservationSource\"}"
         )
         outcome = self.outcome_case_control
-        case_cohort_def = make_cohort_def(outcome.cohort_ids[1], "CASE", "Fake")
-        control_cohort_def = make_cohort_def(outcome.cohort_ids[0], "CONTROL", "Fake")
+        case_cohort_def = make_cohort_def(outcome.cohort_ids[1], "CASE", "Fake", "{\"CriteriaList\":\"\ObservationCase\"}")
+        control_cohort_def = make_cohort_def(outcome.cohort_ids[0], "CONTROL", "Fake", "{\"CriteriaList\":\"\ObservationControl\"}")
         outcome_section = {
             "type": "CASE-CONTROL",
             "concept_name": "Fake",
