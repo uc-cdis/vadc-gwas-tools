@@ -1,6 +1,6 @@
 FROM quay.io/cdis/amazonlinux:2023
 
-RUN dnf install -y python3-pip
+RUN dnf install -y g++ python3-pip
 RUN pip install --upgrade poetry
 
 WORKDIR /opt
