@@ -1,4 +1,4 @@
-FROM quay.io/cdis/python:3.8-buster
+FROM quay.io/cdis/python:3.8-bookworm
 
 RUN pip install --upgrade pip poetry
 
