@@ -7,7 +7,7 @@ WORKDIR /opt
 COPY poetry.lock /opt/
 COPY pyproject.toml /opt/
 COPY vadc_gwas_tools/__main__.py /opt/vadc_gwas_tools/__main__.py
-RUN python -m venv /env \
+RUN python3 -m venv /env \
     && . /env/bin/activate \
     && poetry install --only main --no-interaction
 COPY . /opt/
