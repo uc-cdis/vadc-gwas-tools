@@ -1,7 +1,7 @@
 FROM quay.io/cdis/amazonlinux:2023
 
 RUN dnf install -y python3-pip
-RUN pip install --upgrade pip poetry
+RUN pip install --upgrade poetry
 
 WORKDIR /opt
 COPY poetry.lock /opt/
