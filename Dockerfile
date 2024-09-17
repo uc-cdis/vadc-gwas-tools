@@ -1,5 +1,6 @@
-FROM quay.io/cdis/python:3.9-bookworm
+FROM quay.io/cdis/amazonlinux:2023
 
+RUN dnf install -y python3-pip
 RUN pip install --upgrade pip poetry
 
 WORKDIR /opt
