@@ -64,7 +64,7 @@ class CohortServiceClient:
         hdr = {"Content-Type": "application/json", "Authorization": f"Bearer {tkn}"}
         return hdr
 
-    def get_schema_version(
+    def get_schema_versions(
         self, _di=requests,
     ) -> SchemaVersionResponse:
         """

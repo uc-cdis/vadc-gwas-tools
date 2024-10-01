@@ -52,7 +52,7 @@ class TestCohortServiceClient(unittest.TestCase):
         res = obj.get_header()
         self.assertEqual(res, expected)
 
-    def test_get_schema_version(self):
+    def test_get_schema_versions(self):
         mock_proc = mock.create_autospec(requests.Response)
         mock_proc.raise_for_status.return_value = None
         mock_proc.json.return_value = {
@@ -75,7 +75,7 @@ class TestCohortServiceClient(unittest.TestCase):
             }
         )
 
-        res = obj.get_schema_version(_di=self.mocks.requests)
+        res = obj.get_schema_versions(_di=self.mocks.requests)
         self.assertEqual(res, expected)
 
         self.mocks.requests.get.assert_called_with(
