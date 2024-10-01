@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import yaml
 
 from vadc_gwas_tools.common.cohort_middleware import (
+    SchemaVersionResponse,
     CohortDefinitionResponse,
     CohortServiceClient,
     ConceptDescriptionResponse,
@@ -144,6 +145,10 @@ class GetGwasMetadata(Subcommand):
         # Client
         client = CohortServiceClient()
 
+        # Get Atlas and CDM/OMOP DB versions
+        logger.info("Fetching Atlas and CDM/OMOP DB versions")
+        schema_version = client.get_schema_version()
+
         # Get source population cohort defs
         logger.info("Fetching source population cohort definition")
         source_cohort_def = client.get_cohort_definition(
@@ -190,7 +195,8 @@ class GetGwasMetadata(Subcommand):
                 custom_dichotomous_variables=custom_dichotomous_variables,
                 custom_dichotomous_cohort_metadata=custom_dichotomous_cohort_metadata,
                 case_cohort_def=case_cohort_def,
-                control_cohort_def=control_cohort_def
+                control_cohort_def=control_cohort_def,
+                schema_version=schema_version
             )
         else:
             formatted_metadata = cls._format_metadata(
@@ -200,7 +206,8 @@ class GetGwasMetadata(Subcommand):
                 concept_data=concept_data,
                 custom_dichotomous_variables=custom_dichotomous_variables,
                 custom_dichotomous_cohort_metadata=custom_dichotomous_cohort_metadata,
-                outcome_data=outcome_data
+                outcome_data=outcome_data,
+                schema_version=schema_version
             )
 
         # Export metadata

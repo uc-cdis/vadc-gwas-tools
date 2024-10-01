@@ -13,6 +13,11 @@ from vadc_gwas_tools.common.const import GEN3_ENVIRONMENT_KEY
 from vadc_gwas_tools.common.logger import Logger
 from vadc_gwas_tools.common.wts import WorkspaceTokenServiceClient
 
+@dataclass
+class SchemaVersionResponse:
+    atlas_schema_version: str
+    data_schema_version: str
+
 
 @dataclass
 class CohortDefinitionResponse:
@@ -52,12 +57,33 @@ class CohortServiceClient:
         self.service_url = f"http://cohort-middleware-service.{self.gen3_environment}"
         self.logger = Logger.get_logger("CohortServiceClient")
         self.wts = WorkspaceTokenServiceClient()
-
+    
     def get_header(self) -> Dict[str, str]:
         """Generates the request header."""
         tkn = self.wts.get_refresh_token()["token"]
         hdr = {"Content-Type": "application/json", "Authorization": f"Bearer {tkn}"}
         return hdr
+
+    def get_schema_version(
+        self, _di=requests,
+    ) -> SchemaVersionResponse:
+        """
+        Makes cohort middleware request to get the Atlas schema version
+        and CDM/OMOP DB version. Returns SchemaVersionResponse object.
+        """
+        req = _di.get(
+            f"{self.service_url}/_schema_version",
+            headers=self.get_header(),
+        )
+        req.raise_for_status()
+        response = req.json()
+        atlas_version=response["version"]["AtlasSchemaVersion"]
+        data_version=response["version"]["DataSchemaVersion"]
+        self.logger.info(f"Atlas schema version: {atlas_version}, Data schema version: {data_version}")
+        return SchemaVersionResponse(
+            atlas_schema_version=atlas_version,
+            data_schema_version=data_version
+        )
 
     def get_cohort_csv(
         self,
