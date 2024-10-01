@@ -116,6 +116,7 @@ class TestGetGwasMetadataSubcommand_CustomDichotomousCohortMetadata(unittest.Tes
 class GetGwasMetadataSubcommand_SharedObjects(unittest.TestCase):
     def setUp(self):
         super().setUp()
+        self.schema_version = make_schema_version()
         self.source_id = 2
         self.source_population_cohort = 9
         self.outcome_continuous_str = '{"variable_type": "concept", "concept_id": 1003}'
@@ -214,10 +215,12 @@ class GetGwasMetadataSubcommand_FormatMetadata(GetGwasMetadataSubcommand_SharedO
                 "pvalue_cutoff": 5e-8,
                 "top_n_hits": 100,
             },
+            "schema_version": dataclasses.asdict(self.schema_version)
         }
 
         res = MOD._format_metadata(
             options=args,
+            schema_version=self.schema_version,
             source_cohort_def=source_population_cohort_def,
             outcome=self.outcome_continuous,
             concept_data=self.concept_defs[1:],
@@ -265,10 +268,12 @@ class GetGwasMetadataSubcommand_FormatMetadata(GetGwasMetadataSubcommand_SharedO
                 "pvalue_cutoff": 5e-8,
                 "top_n_hits": 100,
             },
+            "schema_version": dataclasses.asdict(self.schema_version)
         }
 
         res = MOD._format_metadata(
             options=args,
+            schema_version=self.schema_version,
             source_cohort_def=source_population_cohort_def,
             outcome=self.outcome_case_control,
             concept_data=self.concept_defs,
@@ -286,7 +291,6 @@ class GetGwasMetadataSubcommand_FormatMetadata(GetGwasMetadataSubcommand_SharedO
 class GetGwasMetadataSubcommand_Main(GetGwasMetadataSubcommand_SharedObjects):
     def setUp(self):
         super().setUp()
-        self.schema_version = make_schema_version()
         self.concept_variables = [
             ConceptVariableObject(variable_type="concept", concept_id=1003),
             ConceptVariableObject(variable_type="concept", concept_id=1001),

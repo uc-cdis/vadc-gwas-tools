@@ -274,6 +274,7 @@ class GetGwasMetadata(Subcommand):
     def _format_metadata(
         cls,
         options: Namespace,
+        schema_version: SchemaVersionResponse,
         source_cohort_def: CohortDefinitionResponse,
         # outcome provides outcome.provded_name in case-control case
         outcome: Union[CustomDichotomousVariableObject, ConceptVariableObject],
@@ -285,8 +286,10 @@ class GetGwasMetadata(Subcommand):
         control_cohort_def: Optional[CohortDefinitionResponse] = None,
         # outcome_data provides concept metadata in continuous case
         outcome_data: Optional[ConceptDescriptionResponse] = None,
-        schema_version: SchemaVersionResponse,
     ) -> Dict[str, Union[List[Dict[str, str]], Dict[str, Any]]]:
+        # database schema version
+        schema_version = dataclasses.asdict(schema_version)
+
         # source cohort section
         source_cohort = dataclasses.asdict(source_cohort_def)
 
@@ -338,7 +341,8 @@ class GetGwasMetadata(Subcommand):
             "source_cohort": source_cohort,
             "covariates": covariates,
             "parameters": parameters,
-            "outcome": outcome_section
+            "outcome": outcome_section,
+            "schema_version": schema_version
         }
         return data
 
