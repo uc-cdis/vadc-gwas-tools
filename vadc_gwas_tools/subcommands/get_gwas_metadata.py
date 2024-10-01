@@ -189,25 +189,25 @@ class GetGwasMetadata(Subcommand):
         if is_case_control:
             formatted_metadata = cls._format_metadata(
                 options=options,
+                schema_version=schema_version,
                 source_cohort_def=source_cohort_def,
                 outcome=outcome,
                 concept_data=concept_data,
                 custom_dichotomous_variables=custom_dichotomous_variables,
                 custom_dichotomous_cohort_metadata=custom_dichotomous_cohort_metadata,
                 case_cohort_def=case_cohort_def,
-                control_cohort_def=control_cohort_def,
-                schema_version=schema_version
+                control_cohort_def=control_cohort_def
             )
         else:
             formatted_metadata = cls._format_metadata(
                 options=options,
+                schema_version=schema_version,
                 source_cohort_def=source_cohort_def,
                 outcome=outcome,
                 concept_data=concept_data,
                 custom_dichotomous_variables=custom_dichotomous_variables,
                 custom_dichotomous_cohort_metadata=custom_dichotomous_cohort_metadata,
-                outcome_data=outcome_data,
-                schema_version=schema_version
+                outcome_data=outcome_data
             )
 
         # Export metadata
