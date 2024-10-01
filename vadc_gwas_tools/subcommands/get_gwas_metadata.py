@@ -148,6 +148,7 @@ class GetGwasMetadata(Subcommand):
         # Get Atlas and CDM/OMOP DB versions
         logger.info("Fetching Atlas and CDM/OMOP DB versions")
         schema_version = client.get_schema_version()
+        logger.info(schema_version)
 
         # Get source population cohort defs
         logger.info("Fetching source population cohort definition")
@@ -186,6 +187,9 @@ class GetGwasMetadata(Subcommand):
 
         # Format all metadata
         logger.info("Formatting GWAS metadata...")
+        import inspect
+        debug_keyword_agrs = inspect.getargspec(cls._format_metadata)
+        logger.info(str(debug_keyword_agrs))
         if is_case_control:
             formatted_metadata = cls._format_metadata(
                 options=options,
