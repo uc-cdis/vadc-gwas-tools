@@ -286,7 +286,7 @@ class GetGwasMetadata(Subcommand):
         control_cohort_def: Optional[CohortDefinitionResponse] = None,
         # outcome_data provides concept metadata in continuous case
         outcome_data: Optional[ConceptDescriptionResponse] = None,
-    ) -> Dict[str, Union[List[Dict[str, str]], Dict[str, Any]]]:
+    ) -> Dict[str, Union[List[Dict[str, str]], Dict[str, Any]], str]:
         # database schema version
         schema_version = dataclasses.asdict(schema_version)
 
