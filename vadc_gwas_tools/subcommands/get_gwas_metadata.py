@@ -188,7 +188,7 @@ class GetGwasMetadata(Subcommand):
         # Format all metadata
         logger.info("Formatting GWAS metadata...")
         import inspect
-        debug_keyword_agrs = inspect.getargspec(cls._format_metadata)
+        debug_keyword_agrs = inspect.signature(cls._format_metadata)
         logger.info(str(debug_keyword_agrs))
         if is_case_control:
             formatted_metadata = cls._format_metadata(
@@ -290,7 +290,7 @@ class GetGwasMetadata(Subcommand):
         control_cohort_def: Optional[CohortDefinitionResponse] = None,
         # outcome_data provides concept metadata in continuous case
         outcome_data: Optional[ConceptDescriptionResponse] = None,
-    ) -> Dict[str, Union[List[Dict[str, str]], Dict[str, Any]], str]:
+    ) -> Dict[str, Union[List[Dict[str, str]], Dict[str, Any]]]:
         # database schema version
         schema_version = dataclasses.asdict(schema_version)
 
