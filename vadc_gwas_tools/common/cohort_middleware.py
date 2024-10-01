@@ -57,7 +57,7 @@ class CohortServiceClient:
         self.service_url = f"http://cohort-middleware-service.{self.gen3_environment}"
         self.logger = Logger.get_logger("CohortServiceClient")
         self.wts = WorkspaceTokenServiceClient()
-    
+
     def get_header(self) -> Dict[str, str]:
         """Generates the request header."""
         tkn = self.wts.get_refresh_token()["token"]

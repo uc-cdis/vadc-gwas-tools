@@ -148,7 +148,6 @@ class GetGwasMetadata(Subcommand):
         # Get Atlas and CDM/OMOP DB versions
         logger.info("Fetching Atlas and CDM/OMOP DB versions...")
         schema_versions = client.get_schema_versions()
-        logger.info(schema_versions)
 
         # Get source population cohort defs
         logger.info("Fetching source population cohort definition...")
