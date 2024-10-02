@@ -10,6 +10,7 @@ from argparse import ArgumentParser, Namespace
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import yaml
+import math
 
 from vadc_gwas_tools.common.cohort_middleware import (
     SchemaVersionResponse,
@@ -214,7 +215,7 @@ class GetGwasMetadata(Subcommand):
         logger.info("Writing GWAS metadata...")
         logger.info((f"Output: {options.output} "))
         with open(options.output, "w") as o:
-            yaml.dump(formatted_metadata, o, default_flow_style=False, sort_keys=False)
+            yaml.dump(formatted_metadata, o, default_flow_style=False, sort_keys=False, width=float("inf"))
 
     @classmethod
     def _get_variable_lists(
