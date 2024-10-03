@@ -10,6 +10,7 @@ import yaml
 from utils import captured_output, cleanup_files
 
 from vadc_gwas_tools.common.cohort_middleware import (
+    SchemaVersionResponse,
     CohortDefinitionResponse,
     CohortServiceClient,
     ConceptDescriptionResponse,
@@ -32,6 +33,12 @@ class MockArgs(NamedTuple):
     top_n_hits: Optional[int]
     output: str
 
+
+def make_schema_versions():
+    return SchemaVersionResponse(
+    atlas_schema_version="1",
+    data_schema_version="2"
+    )
 
 def make_cohort_def(cohort_definition_id, cohort_name, cohort_description, cohort_definition_json):
     return CohortDefinitionResponse(
@@ -109,6 +116,7 @@ class TestGetGwasMetadataSubcommand_CustomDichotomousCohortMetadata(unittest.Tes
 class GetGwasMetadataSubcommand_SharedObjects(unittest.TestCase):
     def setUp(self):
         super().setUp()
+        self.schema_versions = make_schema_versions()
         self.source_id = 2
         self.source_population_cohort = 9
         self.outcome_continuous_str = '{"variable_type": "concept", "concept_id": 1003}'
@@ -207,10 +215,12 @@ class GetGwasMetadataSubcommand_FormatMetadata(GetGwasMetadataSubcommand_SharedO
                 "pvalue_cutoff": 5e-8,
                 "top_n_hits": 100,
             },
+            "schema_versions": dataclasses.asdict(self.schema_versions)
         }
 
         res = MOD._format_metadata(
             options=args,
+            schema_versions=self.schema_versions,
             source_cohort_def=source_population_cohort_def,
             outcome=self.outcome_continuous,
             concept_data=self.concept_defs[1:],
@@ -258,10 +268,12 @@ class GetGwasMetadataSubcommand_FormatMetadata(GetGwasMetadataSubcommand_SharedO
                 "pvalue_cutoff": 5e-8,
                 "top_n_hits": 100,
             },
+            "schema_versions": dataclasses.asdict(self.schema_versions)
         }
 
         res = MOD._format_metadata(
             options=args,
+            schema_versions=self.schema_versions,
             source_cohort_def=source_population_cohort_def,
             outcome=self.outcome_case_control,
             concept_data=self.concept_defs,
@@ -322,12 +334,15 @@ class GetGwasMetadataSubcommand_Main(GetGwasMetadataSubcommand_SharedObjects):
 
         try:
             with mock.patch.object(
+                CohortServiceClient, "get_schema_versions"
+            ) as mock_schema_versions, mock.patch.object(
                 CohortServiceClient, "get_cohort_definition"
             ) as mock_cohort_def, mock.patch.object(
                 CohortServiceClient, "get_concept_descriptions"
             ) as mock_concept_def, mock.patch.object(
                 MOD, "_get_custom_dichotomous_cohort_metadata"
             ) as mock_get_custom_dichotomous:
+                mock_schema_versions.return_value = self.schema_versions
                 mock_cohort_def.return_value = source_population_cohort_def
                 mock_concept_def.side_effect = [
                     [self.concept_defs[0]],
@@ -355,6 +370,8 @@ class GetGwasMetadataSubcommand_Main(GetGwasMetadataSubcommand_SharedObjects):
                     custom_dichotomous_variables=self.custom_dichotomous_variables,
                     custom_dichotomous_cohort_metadata=self.custom_dichotomous_cohort_meta,
                     outcome_data=self.concept_defs[0],
+                    schema_versions=self.schema_versions
+
                 )
 
             with open(outpath, 'r') as fh:
@@ -413,12 +430,15 @@ class GetGwasMetadataSubcommand_Main(GetGwasMetadataSubcommand_SharedObjects):
 
         try:
             with mock.patch.object(
+                CohortServiceClient, "get_schema_versions"
+            ) as mock_schema_versions, mock.patch.object(
                 CohortServiceClient, "get_cohort_definition"
             ) as mock_cohort_def, mock.patch.object(
                 CohortServiceClient, "get_concept_descriptions"
             ) as mock_concept_def, mock.patch.object(
                 MOD, "_get_custom_dichotomous_cohort_metadata"
             ) as mock_get_custom_dichotomous:
+                mock_schema_versions.return_value = self.schema_versions
 
                 # mock_cohort_def.side_effect = [case_cohort_def, control_cohort_def]
                 mock_cohort_def.side_effect = [
@@ -460,6 +480,7 @@ class GetGwasMetadataSubcommand_Main(GetGwasMetadataSubcommand_SharedObjects):
                     custom_dichotomous_cohort_metadata=self.custom_dichotomous_cohort_meta,
                     case_cohort_def=case_cohort_def,
                     control_cohort_def=control_cohort_def,
+                    schema_versions=self.schema_versions                    
                 )
 
             with open(outpath, 'r') as fh:

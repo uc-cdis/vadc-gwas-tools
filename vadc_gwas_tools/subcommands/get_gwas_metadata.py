@@ -10,8 +10,10 @@ from argparse import ArgumentParser, Namespace
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import yaml
+import math
 
 from vadc_gwas_tools.common.cohort_middleware import (
+    SchemaVersionResponse,
     CohortDefinitionResponse,
     CohortServiceClient,
     ConceptDescriptionResponse,
@@ -144,8 +146,12 @@ class GetGwasMetadata(Subcommand):
         # Client
         client = CohortServiceClient()
 
+        # Get Atlas and CDM/OMOP DB versions
+        logger.info("Fetching Atlas and CDM/OMOP DB versions...")
+        schema_versions = client.get_schema_versions()
+
         # Get source population cohort defs
-        logger.info("Fetching source population cohort definition")
+        logger.info("Fetching source population cohort definition...")
         source_cohort_def = client.get_cohort_definition(
             options.source_population_cohort
         )
@@ -184,6 +190,7 @@ class GetGwasMetadata(Subcommand):
         if is_case_control:
             formatted_metadata = cls._format_metadata(
                 options=options,
+                schema_versions=schema_versions,
                 source_cohort_def=source_cohort_def,
                 outcome=outcome,
                 concept_data=concept_data,
@@ -195,6 +202,7 @@ class GetGwasMetadata(Subcommand):
         else:
             formatted_metadata = cls._format_metadata(
                 options=options,
+                schema_versions=schema_versions,
                 source_cohort_def=source_cohort_def,
                 outcome=outcome,
                 concept_data=concept_data,
@@ -207,7 +215,7 @@ class GetGwasMetadata(Subcommand):
         logger.info("Writing GWAS metadata...")
         logger.info((f"Output: {options.output} "))
         with open(options.output, "w") as o:
-            yaml.dump(formatted_metadata, o, default_flow_style=False, sort_keys=False)
+            yaml.dump(formatted_metadata, o, default_flow_style=False, sort_keys=False, width=float("inf"))
 
     @classmethod
     def _get_variable_lists(
@@ -267,6 +275,7 @@ class GetGwasMetadata(Subcommand):
     def _format_metadata(
         cls,
         options: Namespace,
+        schema_versions: SchemaVersionResponse,
         source_cohort_def: CohortDefinitionResponse,
         # outcome provides outcome.provded_name in case-control case
         outcome: Union[CustomDichotomousVariableObject, ConceptVariableObject],
@@ -279,6 +288,9 @@ class GetGwasMetadata(Subcommand):
         # outcome_data provides concept metadata in continuous case
         outcome_data: Optional[ConceptDescriptionResponse] = None,
     ) -> Dict[str, Union[List[Dict[str, str]], Dict[str, Any]]]:
+        # database schema version
+        schema_versions = dataclasses.asdict(schema_versions)
+
         # source cohort section
         source_cohort = dataclasses.asdict(source_cohort_def)
 
@@ -330,7 +342,8 @@ class GetGwasMetadata(Subcommand):
             "source_cohort": source_cohort,
             "covariates": covariates,
             "parameters": parameters,
-            "outcome": outcome_section
+            "outcome": outcome_section,
+            "schema_versions": schema_versions
         }
         return data
 

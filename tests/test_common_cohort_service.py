@@ -14,6 +14,7 @@ from utils import cleanup_files
 from vadc_gwas_tools.common.cohort_middleware import CohortDefinitionResponse
 from vadc_gwas_tools.common.cohort_middleware import CohortServiceClient as MOD
 from vadc_gwas_tools.common.cohort_middleware import (
+    SchemaVersionResponse,
     ConceptDescriptionResponse,
     ConceptVariableObject,
     CustomDichotomousVariableObject,
@@ -50,6 +51,40 @@ class TestCohortServiceClient(unittest.TestCase):
         obj.wts.get_refresh_token = mock.MagicMock(return_value={"token": "abc"})
         res = obj.get_header()
         self.assertEqual(res, expected)
+
+    def test_get_schema_versions(self):
+        mock_proc = mock.create_autospec(requests.Response)
+        mock_proc.raise_for_status.return_value = None
+        mock_proc.json.return_value = {
+            "version": {
+                "AtlasSchemaVersion": "1",
+                "DataSchemaVersion": "2"
+                }
+        }
+        self.mocks.requests.get.return_value = mock_proc
+        expected = SchemaVersionResponse(
+            atlas_schema_version="1",
+            data_schema_version="2"
+        )
+
+        obj = MOD()
+        obj.get_header = mock.MagicMock(
+            return_value={
+                "Content-Type": "application/json",
+                "Authorization": "Bearer abc",
+            }
+        )
+
+        res = obj.get_schema_versions(_di=self.mocks.requests)
+        self.assertEqual(res, expected)
+
+        self.mocks.requests.get.assert_called_with(
+            "http://cohort-middleware-service.default/_schema_version",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": "Bearer abc",
+            },
+        )
 
     def _return_generator(self, items):
         for item in items:
