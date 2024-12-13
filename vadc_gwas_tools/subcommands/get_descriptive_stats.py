@@ -1,7 +1,7 @@
-"""Communicates with cohort middleware service to extract the attribution
-breakdown CSV(s) and separately a JSON version.
+"""Communicates with cohort middleware service stats endpoint to calculate
+descriptive statistics for users cohort and dump to CSV.
 
-@author: Kyle Hernandez <kmhernan@uchicago.edu>
+@author: Aarti Venkat <aartiv@uchicago.edu>
 """
 import csv
 import json
@@ -18,7 +18,7 @@ from vadc_gwas_tools.common.logger import Logger
 from vadc_gwas_tools.subcommands import Subcommand
 
 
-class GetCohortAttritionTable(Subcommand):
+class GetDescriptiveStatistics(Subcommand):
     @classmethod
     def __add_arguments__(cls, parser: ArgumentParser) -> None:
         """Add the subcommand params"""
@@ -62,13 +62,13 @@ class GetCohortAttritionTable(Subcommand):
             "--output_combined_json",
             required=True,
             type=str,
-            help="Path to write the combined JSON attrition.",
+            help="Path to write the combined descriptive statistics JSON.",
         )
 
     @classmethod
     def main(cls, options: Namespace) -> None:
         """
-        Entrypoint for GetCohortAttritionTable
+        Entrypoint for GetDescriptiveStatistics
         """
         logger = Logger.get_logger(cls.__tool_name__())
         logger.info(cls.__get_description__())
@@ -102,7 +102,7 @@ class GetCohortAttritionTable(Subcommand):
         # Client
         client = CohortServiceClient()
 
-        # Call attrition table
+        # Call get descriptive statistics
         if not is_case_control:  # Continuous workflow
             # log info
             logger.info("Continuous Design...")
@@ -110,25 +110,25 @@ class GetCohortAttritionTable(Subcommand):
                 (f"Source Population Cohort: {options.source_population_cohort}; ")
             )
             # Call cohort-middleware for continuous workflow
-            continuous_csv = (
-                f"{options.output_csv_prefix}.source_cohort.attrition_table.csv"
+            continuous_json = (
+                f"{options.output_csv_prefix}.source_cohort.descriptive_stats.json"
             )
             logger.info(
-                f"Writing continuous workflow attrition table to {continuous_csv}"
+                f"Writing continuous workflow descriptive stats output to {continuous_json}"
             )
-            client.get_attrition_breakdown_csv(
+            descriptive_stats_output = client.get_descriptive_statistics(
                 options.source_id,
                 options.source_population_cohort,
-                continuous_csv,
+                continuous_json,
                 variables,
                 options.prefixed_breakdown_concept_id,
             )
             # Generate JSON
-            case_attrition_json = cls._format_attrition_for_json(continuous_csv, 'case')
-            continuous_attrition_json = [case_attrition_json]
+            # case_attrition_json = cls._format_attrition_for_json(continuous_csv, 'case')
+            # continuous_attrition_json = [case_attrition_json]
 
-            with open(options.output_combined_json, 'wt') as o:
-                json.dump(continuous_attrition_json, o, indent=2)
+            with open(continuous_json, 'wt') as o:
+                json.dump(descriptive_stats_output, o, indent=2)
 
         else:  # Case-control workflow
             # logger info
@@ -149,42 +149,46 @@ class GetCohortAttritionTable(Subcommand):
             )
 
             # Call cohort-middleware for control cohort
-            control_csv = (
-                f"{options.output_csv_prefix}.control_cohort.attrition_table.csv"
+            control_json = (
+                f"{options.output_csv_prefix}.control_cohort.descriptive_stats.json"
             )
             logger.info(
-                f"Writing case-control control cohort attrition table to {control_csv}"
+                f"Writing case-control control cohort descriptive statistics to {control_json}"
             )
-            client.get_attrition_breakdown_csv(
+            descriptive_stats_control_output = client.get_attrition_breakdown_csv(
                 options.source_id,
                 options.source_population_cohort,
-                control_csv,
+                control_json,
                 control_variable_list,
                 options.prefixed_breakdown_concept_id,
             )
+            with open(control_json, 'wt') as o:
+                json.dump(descriptive_stats_control_output, o, indent=2)
 
             # Call cohort-middleware for case cohort
-            case_csv = f"{options.output_csv_prefix}.case_cohort.attrition_table.csv"
-            logger.info(
-                f"Writing case-control case cohort attrition table to {case_csv}"
+            case_json = (
+                f"{options.output_csv_prefix}.control_cohort.descriptive_stats.json"
             )
-            client.get_attrition_breakdown_csv(
+            logger.info(
+                f"Writing case-control case cohort descriptive statistics to {case_csv}"
+            )
+            descriptive_stats_case_output = client.get_attrition_breakdown_csv(
                 options.source_id,
                 options.source_population_cohort,
-                case_csv,
+                case_json,
                 case_variable_list,
                 options.prefixed_breakdown_concept_id,
             )
+            with open(case_json, 'wt') as o:
+                json.dump(descriptive_stats_case_output, o, indent=2)
 
-            # Generate JSON
-            case_attrition_json = cls._format_attrition_for_json(case_csv, 'case')
-            control_attrition_json = cls._format_attrition_for_json(
-                control_csv, 'control'
-            )
-            dichotomous_attrition_json = [case_attrition_json, control_attrition_json]
+            dichotomous_stats_json = [
+                descriptive_stats_case_output,
+                descriptive_stats_control_output,
+            ]
 
             with open(options.output_combined_json, 'wt') as o:
-                json.dump(dichotomous_attrition_json, o, indent=2)
+                json.dump(dichotomous_stats_json, o, indent=2)
 
     @classmethod
     def _get_case_control_variable_lists_(
@@ -196,7 +200,7 @@ class GetCohortAttritionTable(Subcommand):
         source_population_cohort: int,
     ) -> Tuple[List[Union[ConceptVariableObject, CustomDichotomousVariableObject]]]:
         """
-        Create two new variable lists for attrition table
+        Create two new variable lists for descriptive statistics
         calling in case-control use case.
         """
         case_variable_list = variables_list[:]
@@ -288,11 +292,11 @@ class GetCohortAttritionTable(Subcommand):
         Description of tool.
         """
         return (
-            "Generates the attrition tables for a given set of variables and cohorts "
+            "Generates descriptive statistics for a given set of variables and cohorts "
             "that are stratified by a particular breakdown concept (e.g., HARE population). "
             "Quatitative and case-control workflow will be differentiated by --outcome argument"
-            "For quantitative phenotypes, only a single CSV will be generated. For case-control, "
-            "two CSVs will be produced (one for case cohort and one for control cohort). "
+            "For quantitative phenotypes, only a single JSON will be generated. For case-control, "
+            "two JSONs will be produced (one for case cohort and one for control cohort). "
             "A single combined JSON will be created for front-end purposes. "
             "Set the GEN3_ENVIRONMENT environment variable if the internal URL for a service "
             "utilizes an environment other than 'default'."
