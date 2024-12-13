@@ -13,6 +13,7 @@ from vadc_gwas_tools.common.const import GEN3_ENVIRONMENT_KEY
 from vadc_gwas_tools.common.logger import Logger
 from vadc_gwas_tools.common.wts import WorkspaceTokenServiceClient
 
+
 @dataclass
 class SchemaVersionResponse:
     atlas_schema_version: str
@@ -65,7 +66,8 @@ class CohortServiceClient:
         return hdr
 
     def get_schema_versions(
-        self, _di=requests,
+        self,
+        _di=requests,
     ) -> SchemaVersionResponse:
         """
         Makes cohort middleware request to get the Atlas schema version
@@ -77,12 +79,13 @@ class CohortServiceClient:
         )
         req.raise_for_status()
         response = req.json()
-        atlas_version=response["version"]["AtlasSchemaVersion"]
-        data_version=response["version"]["DataSchemaVersion"]
-        self.logger.info(f"Atlas schema version: {atlas_version}, Data schema version: {data_version}")
+        atlas_version = response["version"]["AtlasSchemaVersion"]
+        data_version = response["version"]["DataSchemaVersion"]
+        self.logger.info(
+            f"Atlas schema version: {atlas_version}, Data schema version: {data_version}"
+        )
         return SchemaVersionResponse(
-            atlas_schema_version=atlas_version,
-            data_schema_version=data_version
+            atlas_schema_version=atlas_version, data_schema_version=data_version
         )
 
     def get_cohort_csv(
@@ -134,7 +137,7 @@ class CohortServiceClient:
             cohort_definition_id=response["cohort_definition"]["cohort_definition_id"],
             cohort_name=response["cohort_definition"]["cohort_name"],
             cohort_description=response["cohort_definition"]["cohort_description"],
-            cohort_definition_json=response["cohort_definition"]["Expression"]
+            cohort_definition_json=response["cohort_definition"]["Expression"],
         )
 
     def get_concept_descriptions(
@@ -194,6 +197,43 @@ class CohortServiceClient:
         with open_func(local_path, "wb") as o:  # pylint: disable=C0103
             for chunk in req.iter_content(chunk_size=128):
                 o.write(chunk)
+
+    def get_descriptive_statistics(
+        self,
+        source_id: int,
+        cohort_definition_id: int,
+        local_path: str,
+        variable_objects: List[
+            Union[ConceptVariableObject, CustomDichotomousVariableObject]
+        ],
+        prefixed_breakdown_concept_id: str,
+        _di=requests,
+    ) -> None:
+        """
+        Hits the cohort middleware stats endpoint to get descriptive statistics for users cohort
+        Endpoint should output stats for all HARE ancestries, that need to be further filtered by
+        HARE ancestry selected by the user
+        """
+        self.logger.info(f"Source - {source_id}; Cohort - {cohort_definition_id}")
+        self.logger.info(f"Variables - {variable_objects}")
+        self.logger.info(
+            f"Prefixed Breakdown Concept ID - {prefixed_breakdown_concept_id}"
+        )
+        payload = {"variables": [asdict(i) for i in variable_objects]}
+        breakdown_concept_id = CohortServiceClient.strip_concept_prefix(
+            prefixed_breakdown_concept_id
+        )[0]
+        req = _di.post(
+            f"{self.service_url}/cohort-stats/by-source-id/{source_id}/by-cohort-definition-id/{cohort_definition_id}/by-concept-id/{breakdown_concept_id}",
+            data=json.dumps(payload),
+            headers=self.get_header(),
+            stream=True,
+            timeout=(6.05, len(payload['variables']) * 180),
+        )
+        req.raise_for_status()
+        response = req.json()
+        self.logger.info(f"descriptive stats response {response}")
+        return response
 
     @staticmethod
     def strip_concept_prefix(prefixed_concept_ids: Union[List[str], str]) -> List[int]:
