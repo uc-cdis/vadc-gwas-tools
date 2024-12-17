@@ -84,6 +84,9 @@ class TestDescriptiveStatisticsSubcommand(unittest.TestCase):
             ) as mock_json_loads:
                 instance = mock_client.return_value
                 instance.get_attrition_breakdown_csv.return_value = None
+                mock_json_load.return_value = variable_objects[:]
+                mock_json_loads.return_value = outcome_val
+
                 # Call main()
                 MOD.main(args)
 
