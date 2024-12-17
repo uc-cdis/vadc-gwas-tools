@@ -155,7 +155,7 @@ class GetDescriptiveStatistics(Subcommand):
             logger.info(
                 f"Writing case-control control cohort descriptive statistics to {control_json}"
             )
-            descriptive_stats_control_output = client.get_attrition_breakdown_csv(
+            descriptive_stats_control_output = client.get_descriptive_statistics(
                 options.source_id,
                 options.source_population_cohort,
                 control_json,
@@ -172,7 +172,7 @@ class GetDescriptiveStatistics(Subcommand):
             logger.info(
                 f"Writing case-control case cohort descriptive statistics to {case_csv}"
             )
-            descriptive_stats_case_output = client.get_attrition_breakdown_csv(
+            descriptive_stats_case_output = client.get_descriptive_statistics(
                 options.source_id,
                 options.source_population_cohort,
                 case_json,
