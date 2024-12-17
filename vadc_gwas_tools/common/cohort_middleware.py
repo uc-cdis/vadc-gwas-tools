@@ -223,6 +223,10 @@ class CohortServiceClient:
         breakdown_concept_id = CohortServiceClient.strip_concept_prefix(
             prefixed_breakdown_concept_id
         )[0]
+        # debugging
+        self.logger.info(f"breakdown concept ID - {breakdown_concept_id}")
+        self.logger.info(f"data - {json.dumps(payload)}")
+
         req = _di.post(
             f"{self.service_url}/cohort-stats/by-source-id/{source_id}/by-cohort-definition-id/{cohort_definition_id}/by-concept-id/{breakdown_concept_id}",
             data=json.dumps(payload),

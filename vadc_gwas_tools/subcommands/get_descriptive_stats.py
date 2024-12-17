@@ -116,6 +116,8 @@ class GetDescriptiveStatistics(Subcommand):
             logger.info(
                 f"Writing continuous workflow descriptive stats output to {continuous_json}"
             )
+            logger.info(f"outcome val {outcome_val}")
+
             descriptive_stats_output = client.get_descriptive_statistics(
                 options.source_id,
                 options.source_population_cohort,
