@@ -219,8 +219,8 @@ class CohortServiceClient:
         self.logger.info(
             f"Prefixed Breakdown Concept ID - {prefixed_breakdown_concept_id}"
         )
-        payload = json.dumps({"variables": [asdict(i) for i in variable_objects]})
-        self.logger.info(f"payload - {json.dumps(payload)}")
+        payload = {"variables": [asdict(i) for i in variable_objects]}
+        self.logger.info(f"payload - {payload}")
 
         # need to loop over all concept_ids, lets try to get desc stats for
         # outcome first
