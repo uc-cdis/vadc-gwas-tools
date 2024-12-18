@@ -227,7 +227,13 @@ class CohortServiceClient:
         self.logger.info(f"breakdown concept ID - {breakdown_concept_id}")
 
         hare_filter = {
-            'variables': [{'variable_type': "concept", 'concept_id': hare_population}]
+            'variables': [
+                {
+                    'variable_type': "concept",
+                    'concept_id': breakdown_concept_id,
+                    "values": [hare_population],
+                }
+            ]
         }
         desc_stats_response = []
         for entry in payload['variables']:
