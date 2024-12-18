@@ -207,6 +207,7 @@ class CohortServiceClient:
             Union[ConceptVariableObject, CustomDichotomousVariableObject]
         ],
         prefixed_breakdown_concept_id: str,
+        hare_population: str,
         _di=requests,
     ) -> None:
         """
@@ -216,38 +217,38 @@ class CohortServiceClient:
         """
         self.logger.info(f"Source - {source_id}; Cohort - {cohort_definition_id}")
         self.logger.info(f"Variables - {variable_objects}")
-        self.logger.info(
-            f"Prefixed Breakdown Concept ID - {prefixed_breakdown_concept_id}"
-        )
-        payload = {"variables": [asdict(i) for i in variable_objects]}
+        payload = {"Variables": [asdict(i) for i in variable_objects]}
         self.logger.info(f"payload - {payload}")
-
-        # need to loop over all concept_ids, lets try to get desc stats for
-        # outcome first
-        outcome_concept_id = payload['variables'][0]['concept_id']
-
-        # get it over all HARE ancestries
-        all_hare = {
-            'variables': [{'variable_type': "concept", 'concept_id': 2000007027}]
-        }
+        self.logger.info(f"HARE population {hare_population}")
 
         breakdown_concept_id = CohortServiceClient.strip_concept_prefix(
             prefixed_breakdown_concept_id
         )[0]
-        # debugging
         self.logger.info(f"breakdown concept ID - {breakdown_concept_id}")
 
-        req = _di.post(
-            f"{self.service_url}/cohort-stats/by-source-id/{source_id}/by-cohort-definition-id/{cohort_definition_id}/by-concept-id/{outcome_concept_id}",
-            data=json.dumps(all_hare),
-            headers=self.get_header(),
-            stream=True,
-            timeout=(6.05, len(payload['variables']) * 180),
-        )
-        req.raise_for_status()
-        response = req.json()
-        self.logger.info(f"descriptive stats response {response}")
-        return response
+        hare_filter = {
+            'variables': [{'variable_type': "concept", 'concept_id': hare_population}]
+        }
+        desc_stats_response = []
+        for entry in payload['variables']:
+            c_id = entry['concept_id']
+            self.logger.info(f"Getting descriptive stats for {c_id}")
+            req = _di.post(
+                f"{self.service_url}/cohort-stats/by-source-id/{source_id}/by-cohort-definition-id/{cohort_definition_id}/by-concept-id/{c_id}",
+                data=json.dumps(hare_filter),
+                headers=self.get_header(),
+                stream=True,
+                timeout=(6.05, len(payload['variables']) * 180),
+            )
+            req.raise_for_status()
+            response = req.json()
+            self.logger.info(f"descriptive stats response {response}")
+            desc_stats_response.append(response)
+
+        # write output to file
+        self.logger.info(f"Writing output to {local_path}...")
+        with open(local_path, 'w') as output_file:
+            json.dump(desc_stats_response, output_file, indent=4)
 
     @staticmethod
     def strip_concept_prefix(prefixed_concept_ids: Union[List[str], str]) -> List[int]:

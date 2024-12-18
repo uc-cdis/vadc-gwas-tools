@@ -64,6 +64,12 @@ class GetDescriptiveStatistics(Subcommand):
             type=str,
             help="Path to write the combined descriptive statistics JSON.",
         )
+        parser.add_argument(
+            "--hare_population",
+            required=True,
+            type=str,
+            help="Selected HARE population for the GWAS analysis.",
+        )
 
     @classmethod
     def main(cls, options: Namespace) -> None:
@@ -109,6 +115,7 @@ class GetDescriptiveStatistics(Subcommand):
             logger.info(
                 (f"Source Population Cohort: {options.source_population_cohort}; ")
             )
+            logger.info(f"HARE population {options.hare_population}")
             # Call cohort-middleware for continuous workflow
             continuous_json = (
                 f"{options.output_csv_prefix}.source_cohort.descriptive_stats.json"
@@ -124,6 +131,7 @@ class GetDescriptiveStatistics(Subcommand):
                 continuous_json,
                 variables,
                 options.prefixed_breakdown_concept_id,
+                options.hare_population,
             )
             # Generate JSON
             # case_attrition_json = cls._format_attrition_for_json(continuous_csv, 'case')
@@ -163,6 +171,7 @@ class GetDescriptiveStatistics(Subcommand):
                 control_json,
                 control_variable_list,
                 options.prefixed_breakdown_concept_id,
+                options.hare_population,
             )
             with open(control_json, 'wt') as o:
                 json.dump(descriptive_stats_control_output, o, indent=2)
@@ -180,6 +189,7 @@ class GetDescriptiveStatistics(Subcommand):
                 case_json,
                 case_variable_list,
                 options.prefixed_breakdown_concept_id,
+                options.hare_population,
             )
             with open(case_json, 'wt') as o:
                 json.dump(descriptive_stats_case_output, o, indent=2)
