@@ -245,10 +245,7 @@ class CohortServiceClient:
             self.logger.info(f"descriptive stats response {response}")
             desc_stats_response.append(response)
 
-        # write output to file
-        self.logger.info(f"Writing output to {local_path}...")
-        with open(local_path, 'w') as output_file:
-            json.dump(desc_stats_response, output_file, indent=4)
+        return desc_stats_response
 
     @staticmethod
     def strip_concept_prefix(prefixed_concept_ids: Union[List[str], str]) -> List[int]:

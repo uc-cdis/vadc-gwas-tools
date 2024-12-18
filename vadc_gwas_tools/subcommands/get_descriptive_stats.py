@@ -137,8 +137,8 @@ class GetDescriptiveStatistics(Subcommand):
             # case_attrition_json = cls._format_attrition_for_json(continuous_csv, 'case')
             # continuous_attrition_json = [case_attrition_json]
 
-            with open(continuous_json, 'wt') as o:
-                json.dump(descriptive_stats_output, o, indent=2)
+            with open(continuous_json, 'w') as o:
+                json.dump(descriptive_stats_output, o, indent=4)
 
         else:  # Case-control workflow
             # logger info
@@ -174,7 +174,7 @@ class GetDescriptiveStatistics(Subcommand):
                 options.hare_population,
             )
             with open(control_json, 'wt') as o:
-                json.dump(descriptive_stats_control_output, o, indent=2)
+                json.dump(descriptive_stats_control_output, o, indent=4)
 
             # Call cohort-middleware for case cohort
             case_json = (
@@ -192,14 +192,14 @@ class GetDescriptiveStatistics(Subcommand):
                 options.hare_population,
             )
             with open(case_json, 'wt') as o:
-                json.dump(descriptive_stats_case_output, o, indent=2)
+                json.dump(descriptive_stats_case_output, o, indent=4)
 
             dichotomous_stats_json = [
                 descriptive_stats_case_output,
                 descriptive_stats_control_output,
             ]
 
-            with open(options.output_combined_json, 'wt') as o:
+            with open(options.output_combined_json, 'w') as o:
                 json.dump(dichotomous_stats_json, o, indent=2)
 
     @classmethod
