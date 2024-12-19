@@ -131,6 +131,7 @@ class GetDescriptiveStatistics(Subcommand):
                 options.prefixed_breakdown_concept_id,
                 options.hare_population,
             )
+            logger.info(f"Descriptive stats output {descriptive_stats_output}")
             # Generate JSON
             # case_attrition_json = cls._format_attrition_for_json(continuous_csv, 'case')
             # continuous_attrition_json = [case_attrition_json]

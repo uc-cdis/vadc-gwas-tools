@@ -248,7 +248,7 @@ class CohortServiceClient:
             )
             req.raise_for_status()
             response = req.json()
-            self.logger.info(f"descriptive stats response {response}")
+            # self.logger.info(f"descriptive stats response {response}")
             desc_stats_response.append(response)
 
         return desc_stats_response
