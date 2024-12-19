@@ -117,9 +117,7 @@ class GetDescriptiveStatistics(Subcommand):
             )
             logger.info(f"HARE population {options.hare_population}")
             # Call cohort-middleware for continuous workflow
-            continuous_json = (
-                f"{options.output_csv_prefix}.source_cohort.descriptive_stats.json"
-            )
+            continuous_json = f"{options.output_csv_prefix}.descriptive_stats.json"
             logger.info(
                 f"Writing continuous workflow descriptive stats output to {continuous_json}"
             )

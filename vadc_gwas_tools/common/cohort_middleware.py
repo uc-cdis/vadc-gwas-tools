@@ -209,7 +209,7 @@ class CohortServiceClient:
         prefixed_breakdown_concept_id: str,
         hare_population: str,
         _di=requests,
-    ) -> None:
+    ) -> List:
         """
         Hits the cohort middleware stats endpoint to get descriptive statistics for users cohort
         Endpoint should output stats for all HARE ancestries, that need to be further filtered by
