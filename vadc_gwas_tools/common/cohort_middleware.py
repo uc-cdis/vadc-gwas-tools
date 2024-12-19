@@ -217,7 +217,7 @@ class CohortServiceClient:
         """
         self.logger.info(f"Source - {source_id}; Cohort - {cohort_definition_id}")
         self.logger.info(f"Variables - {variable_objects}")
-        payload = {"Variables": [asdict(i) for i in variable_objects]}
+        payload = {"variables": [asdict(i) for i in variable_objects]}
         self.logger.info(f"payload - {payload}")
         self.logger.info(f"HARE population {hare_population}")
 
@@ -230,8 +230,8 @@ class CohortServiceClient:
             'variables': [
                 {
                     'variable_type': "concept",
-                    'concept_id': breakdown_concept_id,
-                    "values": [hare_population],
+                    'concept_id': breakdown_concept_id
+                    # "values": [hare_population],
                 }
             ]
         }
