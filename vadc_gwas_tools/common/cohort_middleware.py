@@ -198,6 +198,43 @@ class CohortServiceClient:
             for chunk in req.iter_content(chunk_size=128):
                 o.write(chunk)
 
+    def get_concept_id_by_population(
+        self, source_id: int, hare_population: str, _di=requests
+    ) -> Optional[int]:
+        """
+        Fetches the concept_id for the specified HARE population from the cohort middleware service.
+
+        Args:
+            source_id (int): The source ID for the middleware.
+            hare_population (str): The HARE population name to look up (e.g., "non-Hispanic Asian").
+
+        Returns:
+            Optional[int]: The concept_id corresponding to the HARE population, or None if not found.
+        """
+        self.logger.info(f"Fetching concept ID for HARE population: {hare_population}")
+
+        # Fetch the concepts from the middleware
+        req = _di.get(
+            f"{self.service_url}/concept/by-source-id/{source_id}",
+            headers=self.get_header(),
+        )
+        req.raise_for_status()
+        response = req.json()
+
+        # Iterate through concepts to find the matching HARE population
+        for concept in response.get("concepts", []):
+            if concept.get("concept_name") == hare_population:
+                self.logger.info(
+                    f"Found concept_id: {concept['concept_id']} for population: {hare_population}"
+                )
+                return concept["concept_id"]
+
+        # Log and return None if no match is found
+        self.logger.warning(
+            f"No concept_id found for HARE population: {hare_population}"
+        )
+        return None
+
     def get_descriptive_statistics(
         self,
         source_id: int,
@@ -221,6 +258,15 @@ class CohortServiceClient:
         self.logger.info(f"payload - {payload}")
         self.logger.info(f"HARE population {hare_population}")
 
+        # Fetch concept_id for the HARE population
+        hare_concept_id = self.get_concept_id_by_population(
+            source_id, hare_population, _di
+        )
+        if hare_concept_id is None:
+            raise ValueError(
+                f"Concept ID for HARE population '{hare_population}' not found."
+            )
+
         breakdown_concept_id = CohortServiceClient.strip_concept_prefix(
             prefixed_breakdown_concept_id
         )[0]
@@ -230,8 +276,8 @@ class CohortServiceClient:
             'variables': [
                 {
                     'variable_type': "concept",
-                    'concept_id': breakdown_concept_id
-                    # "values": [hare_population],
+                    'concept_id': breakdown_concept_id,
+                    'values': [hare_concept_id],
                 }
             ]
         }

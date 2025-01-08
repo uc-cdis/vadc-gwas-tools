@@ -75,6 +75,9 @@ class TestDescriptiveStatisticsSubcommand(unittest.TestCase):
                 object_hook=CohortServiceClient.decode_concept_variable_json,
             )
 
+            hare_population = "non-Hispanic Asian"
+            hare_concept_id = 2000007029
+
             with mock.patch(
                 "vadc_gwas_tools.subcommands.get_attrition_csv.CohortServiceClient"
             ) as mock_client, mock.patch(
@@ -83,14 +86,28 @@ class TestDescriptiveStatisticsSubcommand(unittest.TestCase):
                 "vadc_gwas_tools.subcommands.get_attrition_csv.json.loads"
             ) as mock_json_loads:
                 instance = mock_client.return_value
-                instance.get_attrition_breakdown_csv.return_value = None
+                # Mock the new get_concept_id_by_population method
+                instance.get_concept_id_by_population.return_value = hare_concept_id
+                # Mock the get_descriptive_statistics method
+                instance.get_descriptive_statistics.return_value = [{"key": "value"}]
                 mock_json_load.return_value = variable_objects[:]
                 mock_json_loads.return_value = outcome_val
 
                 # Call main()
                 MOD.main(args)
 
-                self.assertEqual(instance.get_descriptive_statistics.call_count, 1)
+                # Assertions for the new method
+                instance.get_concept_id_by_population.assert_called_once_with(
+                    args.source_id, hare_population
+                )
+                instance.get_descriptive_statistics.assert_called_once_with(
+                    args.source_id,
+                    args.source_population_cohort,
+                    args.output_csv_prefix,
+                    variable_objects,
+                    args.prefixed_breakdown_concept_id,
+                    hare_population,
+                )
 
         finally:
             cleanup_files([fpath1, fpath2])
