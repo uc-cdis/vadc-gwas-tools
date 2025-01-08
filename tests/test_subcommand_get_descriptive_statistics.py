@@ -24,6 +24,7 @@ class MockArgs(NamedTuple):
     prefixed_breakdown_concept_id: str
     output_csv_prefix: str
     output_combined_json: str
+    hare_population: Optional[str] = None
 
 
 class TestDescriptiveStatisticsSubcommand(unittest.TestCase):
@@ -56,6 +57,7 @@ class TestDescriptiveStatisticsSubcommand(unittest.TestCase):
         try:
             with open(fpath1, 'wt') as o:
                 json.dump(self.continuous_variable_list, o)
+            hare_population = "non-Hispanic Asian"
             args = MockArgs(
                 source_id=2,
                 source_population_cohort=300,
@@ -64,6 +66,7 @@ class TestDescriptiveStatisticsSubcommand(unittest.TestCase):
                 prefixed_breakdown_concept_id="ID_3",
                 output_csv_prefix="/some/path/my_gwas_project",
                 output_combined_json=fpath2,
+                hare_population=hare_population,
             )
             variable_list_str = json.dumps(self.continuous_variable_list)
             variable_objects = json.loads(
@@ -75,8 +78,8 @@ class TestDescriptiveStatisticsSubcommand(unittest.TestCase):
                 object_hook=CohortServiceClient.decode_concept_variable_json,
             )
 
-            hare_population = "non-Hispanic Asian"
-            hare_concept_id = 2000007029
+            # hare_population = "non-Hispanic Asian"
+            # hare_concept_id = 2000007029
 
             with mock.patch(
                 "vadc_gwas_tools.subcommands.get_attrition_csv.CohortServiceClient"
@@ -87,7 +90,7 @@ class TestDescriptiveStatisticsSubcommand(unittest.TestCase):
             ) as mock_json_loads:
                 instance = mock_client.return_value
                 # Mock the new get_concept_id_by_population method
-                instance.get_concept_id_by_population.return_value = hare_concept_id
+                instance.get_concept_id_by_population.return_value = 2000007029
                 # Mock the get_descriptive_statistics method
                 instance.get_descriptive_statistics.return_value = [{"key": "value"}]
                 mock_json_load.return_value = variable_objects[:]
