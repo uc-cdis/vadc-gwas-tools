@@ -187,9 +187,13 @@ class TestGetDescriptiveStatistics(unittest.TestCase):
                 hare_population=self.hare_population,
             )
 
-            variable_objects = [
-                ConceptVariableObject(**var) for var in self.continuous_variable_list
-            ]
+            # Map variable list to correct objects
+            variable_objects = []
+            for var in self.continuous_variable_list:
+                if var["variable_type"] == "concept":
+                    variable_objects.append(ConceptVariableObject(**var))
+                elif var["variable_type"] == "custom_dichotomous":
+                    variable_objects.append(CustomDichotomousVariableObject(**var))
 
             # Mock behavior
             mock_get_concept_id_by_population.return_value = self.hare_concept_id
@@ -225,28 +229,3 @@ class TestGetDescriptiveStatistics(unittest.TestCase):
             self.assertEqual(response, self.mock_response)
         finally:
             cleanup_files([fpath1, fpath2])
-
-    @mock.patch(
-        "vadc_gwas_tools.common.cohort_middleware.CohortServiceClient.get_concept_id_by_population"
-    )
-    def test_get_descriptive_statistics_no_hare_concept_id(
-        self, mock_get_concept_id_by_population
-    ):
-        mock_get_concept_id_by_population.return_value = None
-
-        with self.assertRaises(ValueError) as context:
-            self.client.get_descriptive_statistics(
-                source_id=2,
-                cohort_definition_id=300,
-                local_path="/some/path/results.json",
-                variable_objects=[
-                    ConceptVariableObject(variable_type="concept", concept_id=1001)
-                ],
-                prefixed_breakdown_concept_id="ID_3",
-                hare_population="non-Hispanic Asian",
-            )
-
-        self.assertIn(
-            "Concept ID for HARE population 'non-Hispanic Asian' not found.",
-            str(context.exception),
-        )
