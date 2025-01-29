@@ -235,6 +235,70 @@ class CohortServiceClient:
         )
         return None
 
+    # def get_descriptive_statistics(
+    #     self,
+    #     source_id: int,
+    #     cohort_definition_id: int,
+    #     local_path: str,
+    #     variable_objects: List[
+    #         Union[ConceptVariableObject, CustomDichotomousVariableObject]
+    #     ],
+    #     prefixed_breakdown_concept_id: str,
+    #     hare_population: str,
+    #     _di=requests,
+    # ) -> List:
+    #     """
+    #     Hits the cohort middleware stats endpoint to get descriptive statistics for users cohort
+    #     Endpoint should output stats for all HARE ancestries, that need to be further filtered by
+    #     HARE ancestry selected by the user
+    #     """
+    #     self.logger.info(f"Source - {source_id}; Cohort - {cohort_definition_id}")
+    #     self.logger.info(f"Variables - {variable_objects}")
+    #     payload = {"variables": [asdict(i) for i in variable_objects]}
+    #     self.logger.info(f"payload - {payload}")
+    #     self.logger.info(f"HARE population {hare_population}")
+
+    #     # Fetch concept_id for the HARE population
+    #     hare_concept_id = self.get_concept_id_by_population(
+    #         source_id, hare_population, _di
+    #     )
+    #     if hare_concept_id is None:
+    #         raise ValueError(
+    #             f"Concept ID for HARE population '{hare_population}' not found."
+    #         )
+
+    #     breakdown_concept_id = CohortServiceClient.strip_concept_prefix(
+    #         prefixed_breakdown_concept_id
+    #     )[0]
+    #     self.logger.info(f"breakdown concept ID - {breakdown_concept_id}")
+
+    #     hare_filter = {
+    #         'variables': [
+    #             {
+    #                 'variable_type': "concept",
+    #                 'concept_id': breakdown_concept_id,
+    #                 'values': [hare_concept_id],
+    #             }
+    #         ]
+    #     }
+    #     desc_stats_response = []
+    #     for entry in payload['variables']:
+    #         c_id = entry['concept_id']
+    #         self.logger.info(f"Getting descriptive stats for {c_id}")
+    #         req = _di.post(
+    #             f"{self.service_url}/cohort-stats/by-source-id/{source_id}/by-cohort-definition-id/{cohort_definition_id}/by-concept-id/{c_id}",
+    #             data=json.dumps(hare_filter),
+    #             headers=self.get_header(),
+    #             stream=True,
+    #             timeout=(6.05, len(payload['variables']) * 180),
+    #         )
+    #         req.raise_for_status()
+    #         response = req.json()
+    #         # self.logger.info(f"descriptive stats response {response}")
+    #         desc_stats_response.append(response)
+
+    #     return desc_stats_response
+
     def get_descriptive_statistics(
         self,
         source_id: int,
@@ -248,17 +312,31 @@ class CohortServiceClient:
         _di=requests,
     ) -> List:
         """
-        Hits the cohort middleware stats endpoint to get descriptive statistics for users cohort
-        Endpoint should output stats for all HARE ancestries, that need to be further filtered by
-        HARE ancestry selected by the user
+        Fetches descriptive statistics for a given cohort and set of variables.
+
+        - Supports multiple `variable_type`s, not just `"concept"`.
+        - Returns an empty JSON file for unsupported variable types.
+
+        Args:
+            source_id (int): Source ID for cohort middleware.
+            cohort_definition_id (int): Cohort ID.
+            local_path (str): Local path for storing output.
+            variable_objects (List[Union[ConceptVariableObject, CustomDichotomousVariableObject]]): Variables to query.
+            prefixed_breakdown_concept_id (str): Concept ID prefix for filtering.
+            hare_population (str): HARE population filter.
+            _di: Requests module (for dependency injection).
+
+        Returns:
+            List: API response containing descriptive statistics or an empty JSON file for unsupported types.
         """
         self.logger.info(f"Source - {source_id}; Cohort - {cohort_definition_id}")
         self.logger.info(f"Variables - {variable_objects}")
+
         payload = {"variables": [asdict(i) for i in variable_objects]}
-        self.logger.info(f"payload - {payload}")
+        self.logger.info(f"Payload - {payload}")
         self.logger.info(f"HARE population {hare_population}")
 
-        # Fetch concept_id for the HARE population
+        # Fetch concept_id for HARE population
         hare_concept_id = self.get_concept_id_by_population(
             source_id, hare_population, _di
         )
@@ -270,31 +348,59 @@ class CohortServiceClient:
         breakdown_concept_id = CohortServiceClient.strip_concept_prefix(
             prefixed_breakdown_concept_id
         )[0]
-        self.logger.info(f"breakdown concept ID - {breakdown_concept_id}")
+        self.logger.info(f"Breakdown concept ID - {breakdown_concept_id}")
 
+        # Define the base filter structure
         hare_filter = {
-            'variables': [
+            "variables": [
                 {
-                    'variable_type': "concept",
-                    'concept_id': breakdown_concept_id,
-                    'values': [hare_concept_id],
+                    "variable_type": "concept",
+                    "concept_id": breakdown_concept_id,
+                    "values": [hare_concept_id],
                 }
             ]
         }
+
         desc_stats_response = []
-        for entry in payload['variables']:
-            c_id = entry['concept_id']
-            self.logger.info(f"Getting descriptive stats for {c_id}")
+
+        # Iterate through each variable and construct API calls dynamically
+        for entry in payload["variables"]:
+            var_type = entry["variable_type"]
+
+            # Handle only "concept" and "custom_dichotomous"
+            if var_type == "concept":
+                variable_filter = {
+                    "variable_type": var_type,
+                    "concept_id": entry["concept_id"],
+                }
+            else:
+                # Log unsupported types and generate an empty JSON file
+                self.logger.warning(
+                    f"Unsupported variable_type: {var_type}, returning an empty JSON file."
+                )
+                empty_json_path = f"{local_path}/empty_stats_{var_type}.json"
+                with open(empty_json_path, "w") as empty_file:
+                    json.dump({}, empty_file)  # Write an empty JSON object
+                self.logger.info(f"Empty JSON file created at {empty_json_path}")
+                continue  # Skip unsupported variable types
+
+            request_payload = {"variables": [variable_filter]}
+
+            self.logger.info(
+                f"Fetching descriptive stats for {var_type}: {request_payload}"
+            )
+
+            # Make API request
             req = _di.post(
-                f"{self.service_url}/cohort-stats/by-source-id/{source_id}/by-cohort-definition-id/{cohort_definition_id}/by-concept-id/{c_id}",
-                data=json.dumps(hare_filter),
+                f"{self.service_url}/cohort-stats/by-source-id/{source_id}/by-cohort-definition-id/{cohort_definition_id}",
+                data=json.dumps(request_payload),
                 headers=self.get_header(),
                 stream=True,
-                timeout=(6.05, len(payload['variables']) * 180),
+                timeout=(6.05, len(payload["variables"]) * 180),
             )
+
             req.raise_for_status()
             response = req.json()
-            # self.logger.info(f"descriptive stats response {response}")
             desc_stats_response.append(response)
 
         return desc_stats_response
