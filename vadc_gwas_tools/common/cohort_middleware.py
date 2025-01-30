@@ -303,31 +303,29 @@ class CohortServiceClient:
         self,
         source_id: int,
         cohort_definition_id: int,
-        local_path: str,
         variable_objects: List[
             Union[ConceptVariableObject, CustomDichotomousVariableObject]
         ],
         prefixed_breakdown_concept_id: str,
         hare_population: str,
         _di=requests,
-    ) -> List:
+    ) -> dict:
         """
         Fetches descriptive statistics for a given cohort and set of variables.
 
         - Supports multiple `variable_type`s, not just `"concept"`.
-        - Returns an empty JSON file for `custom_dichotomous` and unsupported variable types.
+        - Returns `{}` for `custom_dichotomous` and unsupported variable types.
 
         Args:
             source_id (int): Source ID for cohort middleware.
             cohort_definition_id (int): Cohort ID.
-            local_path (str): Local path for storing output.
             variable_objects (List[Union[ConceptVariableObject, CustomDichotomousVariableObject]]): Variables to query.
             prefixed_breakdown_concept_id (str): Concept ID prefix for filtering.
             hare_population (str): HARE population filter.
             _di: Requests module (for dependency injection).
 
         Returns:
-            List: API response containing descriptive statistics or an empty JSON file for non-concept types.
+            dict: JSON response containing descriptive statistics or `{}` for non-concept types.
         """
         self.logger.info(f"Source - {source_id}; Cohort - {cohort_definition_id}")
         self.logger.info(f"Variables - {variable_objects}")
@@ -335,9 +333,6 @@ class CohortServiceClient:
         payload = {"variables": [asdict(i) for i in variable_objects]}
         self.logger.info(f"Payload - {payload}")
         self.logger.info(f"HARE population {hare_population}")
-
-        # Ensure local_path exists
-        os.makedirs(local_path, exist_ok=True)
 
         # Fetch concept_id for HARE population
         hare_concept_id = self.get_concept_id_by_population(
@@ -370,13 +365,11 @@ class CohortServiceClient:
         for entry in payload["variables"]:
             var_type = entry["variable_type"]
 
-            # Handle only "concept", return empty JSON for all other types
             if var_type == "concept":
                 c_id = entry["concept_id"]
             else:
-                # Log unsupported types and generate an empty JSON file
                 self.logger.info(f"Returning empty JSON for variable_type: {var_type}")
-                return [{}]
+                return {}  # Immediately return an empty JSON object
 
             request_payload = json.dumps(hare_filter)
 
@@ -395,7 +388,8 @@ class CohortServiceClient:
             response = req.json()
             desc_stats_response.append(response)
 
-        return desc_stats_response
+        # If no valid concept stats were collected, return empty JSON
+        return desc_stats_response if desc_stats_response else {}
 
     @staticmethod
     def strip_concept_prefix(prefixed_concept_ids: Union[List[str], str]) -> List[int]:
