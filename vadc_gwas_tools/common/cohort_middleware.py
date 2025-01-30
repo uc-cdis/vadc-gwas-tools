@@ -330,7 +330,21 @@ class CohortServiceClient:
         self.logger.info(f"Source - {source_id}; Cohort - {cohort_definition_id}")
         self.logger.info(f"Variables - {variable_objects}")
 
-        payload = {"variables": [asdict(i) for i in variable_objects]}
+        # Ensure all elements in variable_objects are dataclass instances
+        filtered_variables = []
+        for i in variable_objects:
+            if dataclasses.is_dataclass(i):
+                filtered_variables.append(dataclasses.asdict(i))
+            else:
+                self.logger.warning(f"Skipping non-dataclass variable: {i}")
+
+        if not filtered_variables:
+            self.logger.warning(
+                "No valid dataclass variables found. Returning empty JSON."
+            )
+            return {}
+
+        payload = {"variables": filtered_variables}
         self.logger.info(f"Payload - {payload}")
         self.logger.info(f"HARE population {hare_population}")
 
