@@ -375,15 +375,8 @@ class CohortServiceClient:
                 c_id = entry["concept_id"]
             else:
                 # Log unsupported types and generate an empty JSON file
-                empty_json_path = os.path.join(
-                    local_path, f"empty_stats_{var_type}.json"
-                )
-                with open(empty_json_path, "w") as empty_file:
-                    json.dump({}, empty_file)  # Write an empty JSON object
-                self.logger.info(
-                    f"Empty JSON file created at {empty_json_path} for variable_type: {var_type}"
-                )
-                continue  # Skip making API request
+                self.logger.info(f"Returning empty JSON for variable_type: {var_type}")
+                return [{}]
 
             request_payload = json.dumps(hare_filter)
 
