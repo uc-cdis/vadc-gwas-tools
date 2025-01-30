@@ -315,7 +315,7 @@ class CohortServiceClient:
         Fetches descriptive statistics for a given cohort and set of variables.
 
         - Supports multiple `variable_type`s, not just `"concept"`.
-        - Returns an empty JSON file for unsupported variable types.
+        - Returns an empty JSON file for `custom_dichotomous` and unsupported variable types.
 
         Args:
             source_id (int): Source ID for cohort middleware.
@@ -327,7 +327,7 @@ class CohortServiceClient:
             _di: Requests module (for dependency injection).
 
         Returns:
-            List: API response containing descriptive statistics or an empty JSON file for unsupported types.
+            List: API response containing descriptive statistics or an empty JSON file for non-concept types.
         """
         self.logger.info(f"Source - {source_id}; Cohort - {cohort_definition_id}")
         self.logger.info(f"Variables - {variable_objects}")
@@ -335,6 +335,9 @@ class CohortServiceClient:
         payload = {"variables": [asdict(i) for i in variable_objects]}
         self.logger.info(f"Payload - {payload}")
         self.logger.info(f"HARE population {hare_population}")
+
+        # Ensure local_path exists
+        os.makedirs(local_path, exist_ok=True)
 
         # Fetch concept_id for HARE population
         hare_concept_id = self.get_concept_id_by_population(
@@ -367,33 +370,29 @@ class CohortServiceClient:
         for entry in payload["variables"]:
             var_type = entry["variable_type"]
 
-            # Handle only "concept" and "custom_dichotomous"
+            # Handle only "concept", return empty JSON for all other types
             if var_type == "concept":
-                variable_filter = {
-                    "variable_type": var_type,
-                    "concept_id": entry["concept_id"],
-                }
+                c_id = entry["concept_id"]
             else:
                 # Log unsupported types and generate an empty JSON file
-                self.logger.warning(
-                    f"Unsupported variable_type: {var_type}, returning an empty JSON file."
+                empty_json_path = os.path.join(
+                    local_path, f"empty_stats_{var_type}.json"
                 )
-                empty_json_path = f"{local_path}/empty_stats_{var_type}.json"
                 with open(empty_json_path, "w") as empty_file:
                     json.dump({}, empty_file)  # Write an empty JSON object
-                self.logger.info(f"Empty JSON file created at {empty_json_path}")
-                continue  # Skip unsupported variable types
+                self.logger.info(
+                    f"Empty JSON file created at {empty_json_path} for variable_type: {var_type}"
+                )
+                continue  # Skip making API request
 
-            request_payload = {"variables": [variable_filter]}
+            request_payload = json.dumps(hare_filter)
 
-            self.logger.info(
-                f"Fetching descriptive stats for {var_type}: {request_payload}"
-            )
+            self.logger.info(f"Fetching descriptive stats for concept_id {c_id}")
 
-            # Make API request
+            # Make API request using the correct endpoint format
             req = _di.post(
-                f"{self.service_url}/cohort-stats/by-source-id/{source_id}/by-cohort-definition-id/{cohort_definition_id}",
-                data=json.dumps(request_payload),
+                f"{self.service_url}/cohort-stats/by-source-id/{source_id}/by-cohort-definition-id/{cohort_definition_id}/by-concept-id/{c_id}",
+                data=request_payload,
                 headers=self.get_header(),
                 stream=True,
                 timeout=(6.05, len(payload["variables"]) * 180),
