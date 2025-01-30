@@ -309,7 +309,7 @@ class CohortServiceClient:
         prefixed_breakdown_concept_id: str,
         hare_population: str,
         _di=requests,
-    ) -> dict:
+    ) -> List:
         """
         Fetches descriptive statistics for a given cohort and set of variables.
 
@@ -325,26 +325,12 @@ class CohortServiceClient:
             _di: Requests module (for dependency injection).
 
         Returns:
-            dict: JSON response containing descriptive statistics or `{}` for non-concept types.
+            List: API response containing descriptive statistics or an empty JSON `{}` for non-concept types.
         """
         self.logger.info(f"Source - {source_id}; Cohort - {cohort_definition_id}")
         self.logger.info(f"Variables - {variable_objects}")
 
-        # Ensure all elements in variable_objects are dataclass instances
-        filtered_variables = []
-        for i in variable_objects:
-            if dataclasses.is_dataclass(i):
-                filtered_variables.append(dataclasses.asdict(i))
-            else:
-                self.logger.warning(f"Skipping non-dataclass variable: {i}")
-
-        if not filtered_variables:
-            self.logger.warning(
-                "No valid dataclass variables found. Returning empty JSON."
-            )
-            return {}
-
-        payload = {"variables": filtered_variables}
+        payload = {"variables": [asdict(i) for i in variable_objects]}
         self.logger.info(f"Payload - {payload}")
         self.logger.info(f"HARE population {hare_population}")
 
@@ -383,7 +369,7 @@ class CohortServiceClient:
                 c_id = entry["concept_id"]
             else:
                 self.logger.info(f"Returning empty JSON for variable_type: {var_type}")
-                return {}  # Immediately return an empty JSON object
+                return {}  # Return an empty JSON for non-concept types
 
             request_payload = json.dumps(hare_filter)
 
@@ -402,8 +388,7 @@ class CohortServiceClient:
             response = req.json()
             desc_stats_response.append(response)
 
-        # If no valid concept stats were collected, return empty JSON
-        return desc_stats_response if desc_stats_response else {}
+        return desc_stats_response
 
     @staticmethod
     def strip_concept_prefix(prefixed_concept_ids: Union[List[str], str]) -> List[int]:
