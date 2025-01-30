@@ -142,64 +142,67 @@ class GetDescriptiveStatistics(Subcommand):
         else:  # Case-control workflow
             # logger info
             logger.info("Case-Control Design...")
-            logger.info(
-                (
-                    f"Source Population Cohort: {options.source_population_cohort}; "
-                    f"Case Cohort: {outcome_case_cohort}"
-                    f"Control Cohort: {outcome_control_cohort}"
-                )
-            )
+            # logger.info(
+            #     (
+            #         f"Source Population Cohort: {options.source_population_cohort}; "
+            #         f"Case Cohort: {outcome_case_cohort}"
+            #         f"Control Cohort: {outcome_control_cohort}"
+            #     )
+            # )
 
-            (
-                control_variable_list,
-                case_variable_list,
-            ) = cls._get_case_control_variable_lists_(
-                variables, outcome_val, options.source_population_cohort
-            )
+            # (
+            #     control_variable_list,
+            #     case_variable_list,
+            # ) = cls._get_case_control_variable_lists_(
+            #     variables, outcome_val, options.source_population_cohort
+            # )
 
-            # Call cohort-middleware for control cohort
-            control_json = (
-                f"{options.output_csv_prefix}.control_cohort.descriptive_stats.json"
-            )
-            logger.info(
-                f"Writing case-control control cohort descriptive statistics to {control_json}"
-            )
-            descriptive_stats_control_output = client.get_descriptive_statistics(
-                options.source_id,
-                options.source_population_cohort,
-                control_json,
-                control_variable_list,
-                options.prefixed_breakdown_concept_id,
-                options.hare_population,
-            )
-            with open(control_json, 'wt') as o:
-                json.dump(descriptive_stats_control_output, o, indent=4)
+            # # Call cohort-middleware for control cohort
+            # control_json = (
+            #     f"{options.output_csv_prefix}.control_cohort.descriptive_stats.json"
+            # )
+            # logger.info(
+            #     f"Writing case-control control cohort descriptive statistics to {control_json}"
+            # )
+            # descriptive_stats_control_output = client.get_descriptive_statistics(
+            #     options.source_id,
+            #     options.source_population_cohort,
+            #     control_json,
+            #     control_variable_list,
+            #     options.prefixed_breakdown_concept_id,
+            #     options.hare_population,
+            # )
+            # with open(control_json, 'wt') as o:
+            #     json.dump(descriptive_stats_control_output, o, indent=4)
 
-            # Call cohort-middleware for case cohort
-            case_json = (
-                f"{options.output_csv_prefix}.control_cohort.descriptive_stats.json"
-            )
-            logger.info(
-                f"Writing case-control case cohort descriptive statistics to {case_csv}"
-            )
-            descriptive_stats_case_output = client.get_descriptive_statistics(
-                options.source_id,
-                options.source_population_cohort,
-                case_json,
-                case_variable_list,
-                options.prefixed_breakdown_concept_id,
-                options.hare_population,
-            )
-            with open(case_json, 'wt') as o:
-                json.dump(descriptive_stats_case_output, o, indent=4)
+            # # Call cohort-middleware for case cohort
+            # case_json = (
+            #     f"{options.output_csv_prefix}.control_cohort.descriptive_stats.json"
+            # )
+            # logger.info(
+            #     f"Writing case-control case cohort descriptive statistics to {case_csv}"
+            # )
+            # descriptive_stats_case_output = client.get_descriptive_statistics(
+            #     options.source_id,
+            #     options.source_population_cohort,
+            #     case_json,
+            #     case_variable_list,
+            #     options.prefixed_breakdown_concept_id,
+            #     options.hare_population,
+            # )
+            # with open(case_json, 'wt') as o:
+            #     json.dump(descriptive_stats_case_output, o, indent=4)
 
-            dichotomous_stats_json = [
-                descriptive_stats_case_output,
-                descriptive_stats_control_output,
-            ]
+            # dichotomous_stats_json = [
+            #     descriptive_stats_case_output,
+            #     descriptive_stats_control_output,
+            # ]
 
-            with open(options.output_combined_json, 'w') as o:
-                json.dump(dichotomous_stats_json, o, indent=2)
+            # with open(options.output_combined_json, 'w') as o:
+            #     json.dump(dichotomous_stats_json, o, indent=2)
+            case_control_json = f"{options.output_csv_prefix}.descriptive_stats.json"
+            with open(case_control_json, 'w') as o:
+                json.dump({}, o, indent=2)
 
     @classmethod
     def _get_case_control_variable_lists_(
