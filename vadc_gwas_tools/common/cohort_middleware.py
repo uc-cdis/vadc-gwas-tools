@@ -283,20 +283,27 @@ class CohortServiceClient:
         }
         desc_stats_response = []
         for entry in payload['variables']:
-            c_id = entry['concept_id']
-            self.logger.info(f"Getting descriptive stats for {c_id}")
-            req = _di.post(
-                f"{self.service_url}/cohort-stats/by-source-id/{source_id}/by-cohort-definition-id/{cohort_definition_id}/by-concept-id/{c_id}",
-                data=json.dumps(hare_filter),
-                headers=self.get_header(),
-                stream=True,
-                timeout=(6.05, len(payload['variables']) * 180),
-            )
-            req.raise_for_status()
-            response = req.json()
-            # self.logger.info(f"descriptive stats response {response}")
-            desc_stats_response.append(response)
+            var_type = entry["variable_type"]
+            if var_type == "concept":
+                c_id = entry["concept_id"]
 
+                self.logger.info(f"Getting descriptive stats for {c_id}")
+                req = _di.post(
+                    f"{self.service_url}/cohort-stats/by-source-id/{source_id}/by-cohort-definition-id/{cohort_definition_id}/by-concept-id/{c_id}",
+                    data=json.dumps(hare_filter),
+                    headers=self.get_header(),
+                    stream=True,
+                    timeout=(6.05, len(payload['variables']) * 180),
+                )
+                req.raise_for_status()
+                response = req.json()
+                # self.logger.info(f"descriptive stats response {response}")
+                desc_stats_response.append(response)
+            else:
+                self.logger.info(f"Returning empty JSON for variable_type: {var_type}")
+                desc_stats_response.append(
+                    {}
+                )  # Return an empty JSON for non-concept types
         return desc_stats_response
 
     # def get_descriptive_statistics(
