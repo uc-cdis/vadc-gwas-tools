@@ -206,12 +206,10 @@ class TestGetDescriptiveStatistics(unittest.TestCase):
             response = self.client.get_descriptive_statistics(
                 source_id=args.source_id,
                 cohort_definition_id=args.source_population_cohort,
-                outcome=args.outcome,
                 local_path=args.output_csv_prefix,
                 variable_objects=variable_objects,
                 prefixed_breakdown_concept_id=args.prefixed_breakdown_concept_id,
                 hare_population=args.hare_population,
-                output_csv_prefix=args.output_csv_prefix,
             )
 
             # Assertions
