@@ -152,20 +152,22 @@ class TestGetDescriptiveStatistics(unittest.TestCase):
         self.prefixed_breakdown_concept_id = "ID_3"
         self.mock_response = [
             [
-                {'statistics': [{'key': 'value'}]},
-                {'statistics': [{'key': 'value'}]},
-                {},
-            ],
-            [
-                {'statistics': [{'key': 'value'}]},
-                {'statistics': [{'key': 'value'}]},
-                {},
-            ],
-            [
-                {'statistics': [{'key': 'value'}]},
-                {'statistics': [{'key': 'value'}]},
-                {},
-            ],
+                [
+                    {'statistics': [{'key': 'value'}]},
+                    {'statistics': [{'key': 'value'}]},
+                    {},
+                ],
+                [
+                    {'statistics': [{'key': 'value'}]},
+                    {'statistics': [{'key': 'value'}]},
+                    {},
+                ],
+                [
+                    {'statistics': [{'key': 'value'}]},
+                    {'statistics': [{'key': 'value'}]},
+                    {},
+                ],
+            ]
         ]
 
     @mock.patch("vadc_gwas_tools.common.cohort_middleware.requests.post")
