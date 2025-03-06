@@ -151,9 +151,21 @@ class TestGetDescriptiveStatistics(unittest.TestCase):
         self.hare_concept_id = 2000007029
         self.prefixed_breakdown_concept_id = "ID_3"
         self.mock_response = [
-            {'statistics': [{'key': 'value'}]},
-            {'statistics': [{'key': 'value'}]},
-            {},
+            [
+                {'statistics': [{'key': 'value'}]},
+                {'statistics': [{'key': 'value'}]},
+                {},
+            ],
+            [
+                {'statistics': [{'key': 'value'}]},
+                {'statistics': [{'key': 'value'}]},
+                {},
+            ],
+            [
+                {'statistics': [{'key': 'value'}]},
+                {'statistics': [{'key': 'value'}]},
+                {},
+            ],
         ]
 
     @mock.patch("vadc_gwas_tools.common.cohort_middleware.requests.post")
