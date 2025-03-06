@@ -220,7 +220,7 @@ class TestGetDescriptiveStatistics(unittest.TestCase):
                 args.prefixed_breakdown_concept_id
             )
             mock_post.assert_called_with(
-                f"{self.client.service_url}/cohort-stats/by-source-id/{args.source_id}/by-cohort-definition-id/{args.source_population_cohort}/by-concept-id/1001",
+                f"{self.client.service_url}/cohort-stats/by-source-id/{args.source_id}/by-cohort-definition-id/{args.source_population_cohort}/by-concept-id/1002",
                 data=mock.ANY,
                 headers={"Authorization": "Bearer test-token"},
                 stream=True,
