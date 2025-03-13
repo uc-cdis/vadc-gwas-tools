@@ -13,6 +13,7 @@ from vadc_gwas_tools.common.const import GEN3_ENVIRONMENT_KEY
 from vadc_gwas_tools.common.logger import Logger
 from vadc_gwas_tools.common.wts import WorkspaceTokenServiceClient
 
+
 @dataclass
 class SchemaVersionResponse:
     atlas_schema_version: str
@@ -65,7 +66,8 @@ class CohortServiceClient:
         return hdr
 
     def get_schema_versions(
-        self, _di=requests,
+        self,
+        _di=requests,
     ) -> SchemaVersionResponse:
         """
         Makes cohort middleware request to get the Atlas schema version
@@ -77,12 +79,13 @@ class CohortServiceClient:
         )
         req.raise_for_status()
         response = req.json()
-        atlas_version=response["version"]["AtlasSchemaVersion"]
-        data_version=response["version"]["DataSchemaVersion"]
-        self.logger.info(f"Atlas schema version: {atlas_version}, Data schema version: {data_version}")
+        atlas_version = response["version"]["AtlasSchemaVersion"]
+        data_version = response["version"]["DataSchemaVersion"]
+        self.logger.info(
+            f"Atlas schema version: {atlas_version}, Data schema version: {data_version}"
+        )
         return SchemaVersionResponse(
-            atlas_schema_version=atlas_version,
-            data_schema_version=data_version
+            atlas_schema_version=atlas_version, data_schema_version=data_version
         )
 
     def get_cohort_csv(
@@ -134,7 +137,7 @@ class CohortServiceClient:
             cohort_definition_id=response["cohort_definition"]["cohort_definition_id"],
             cohort_name=response["cohort_definition"]["cohort_name"],
             cohort_description=response["cohort_definition"]["cohort_description"],
-            cohort_definition_json=response["cohort_definition"]["Expression"]
+            cohort_definition_json=response["cohort_definition"]["Expression"],
         )
 
     def get_concept_descriptions(
@@ -194,6 +197,205 @@ class CohortServiceClient:
         with open_func(local_path, "wb") as o:  # pylint: disable=C0103
             for chunk in req.iter_content(chunk_size=128):
                 o.write(chunk)
+
+    def get_concept_id_by_population(
+        self, source_id: int, hare_population: str, _di=requests
+    ) -> Optional[int]:
+        """
+        Fetches the concept_id for the specified HARE population from the cohort middleware service.
+
+        Args:
+            source_id (int): The source ID for the middleware.
+            hare_population (str): The HARE population name to look up (e.g., "non-Hispanic Asian").
+
+        Returns:
+            Optional[int]: The concept_id corresponding to the HARE population, or None if not found.
+        """
+        self.logger.info(f"Fetching concept ID for HARE population: {hare_population}")
+
+        # Fetch the concepts from the middleware
+        req = _di.get(
+            f"{self.service_url}/concept/by-source-id/{source_id}",
+            headers=self.get_header(),
+        )
+        req.raise_for_status()
+        response = req.json()
+
+        # Iterate through concepts to find the matching HARE population
+        for concept in response.get("concepts", []):
+            if concept.get("concept_name") == hare_population:
+                self.logger.info(
+                    f"Found concept_id: {concept['concept_id']} for population: {hare_population}"
+                )
+                return concept["concept_id"]
+
+        # Log and return None if no match is found
+        self.logger.warning(
+            f"No concept_id found for HARE population: {hare_population}"
+        )
+        return None
+
+    def get_descriptive_statistics(
+        self,
+        source_id: int,
+        cohort_definition_id: int,
+        local_path: str,
+        variable_objects: List[
+            Union[ConceptVariableObject, CustomDichotomousVariableObject]
+        ],
+        prefixed_breakdown_concept_id: str,
+        hare_population: str,
+        _di=requests,
+    ) -> List:
+        """
+        Hits the cohort middleware stats endpoint to get descriptive statistics for users cohort
+        Endpoint should output stats for all HARE ancestries, that need to be further filtered by
+        HARE ancestry selected by the user
+        """
+        self.logger.info(f"Source - {source_id}; Cohort - {cohort_definition_id}")
+        self.logger.info(f"Variables - {variable_objects}")
+        payload = {"variables": [asdict(i) for i in variable_objects]}
+        self.logger.info(f"payload - {payload}")
+        self.logger.info(f"HARE population {hare_population}")
+
+        # Fetch concept_id for the HARE population
+        hare_concept_id = self.get_concept_id_by_population(
+            source_id, hare_population, _di
+        )
+        if hare_concept_id is None:
+            raise ValueError(
+                f"Concept ID for HARE population '{hare_population}' not found."
+            )
+
+        breakdown_concept_id = CohortServiceClient.strip_concept_prefix(
+            prefixed_breakdown_concept_id
+        )[0]
+        self.logger.info(f"breakdown concept ID - {breakdown_concept_id}")
+
+        hare_filter = {
+            'variables': [
+                {
+                    'variable_type': "concept",
+                    'concept_id': breakdown_concept_id,
+                    'values': [hare_concept_id],
+                }
+            ]
+        }
+        desc_stats_response = []
+        for entry in payload['variables']:
+            var_type = entry["variable_type"]
+            if var_type == "concept":
+                c_id = entry["concept_id"]
+
+                self.logger.info(f"Getting descriptive stats for {c_id}")
+                req = _di.post(
+                    f"{self.service_url}/cohort-stats/by-source-id/{source_id}/by-cohort-definition-id/{cohort_definition_id}/by-concept-id/{c_id}",
+                    data=json.dumps(hare_filter),
+                    headers=self.get_header(),
+                    stream=True,
+                    timeout=(6.05, len(payload['variables']) * 180),
+                )
+                req.raise_for_status()
+                response = req.json()
+                # self.logger.info(f"descriptive stats response {response}")
+                desc_stats_response.append(response)
+            else:
+                self.logger.info(f"Returning empty JSON for variable_type: {var_type}")
+                desc_stats_response.append(
+                    {}
+                )  # Return an empty JSON for non-concept types
+        return desc_stats_response
+
+    # def get_descriptive_statistics(
+    #     self,
+    #     source_id: int,
+    #     cohort_definition_id: int,
+    #     variable_objects: List[
+    #         Union[ConceptVariableObject, CustomDichotomousVariableObject]
+    #     ],
+    #     prefixed_breakdown_concept_id: str,
+    #     hare_population: str,
+    #     _di=requests,
+    # ) -> List:
+    #     """
+    #     Fetches descriptive statistics for a given cohort and set of variables.
+
+    #     - Supports multiple `variable_type`s, not just `"concept"`.
+    #     - Returns `{}` for `custom_dichotomous` and unsupported variable types.
+
+    #     Args:
+    #         source_id (int): Source ID for cohort middleware.
+    #         cohort_definition_id (int): Cohort ID.
+    #         variable_objects (List[Union[ConceptVariableObject, CustomDichotomousVariableObject]]): Variables to query.
+    #         prefixed_breakdown_concept_id (str): Concept ID prefix for filtering.
+    #         hare_population (str): HARE population filter.
+    #         _di: Requests module (for dependency injection).
+
+    #     Returns:
+    #         List: API response containing descriptive statistics or an empty JSON `{}` for non-concept types.
+    #     """
+    #     self.logger.info(f"Source - {source_id}; Cohort - {cohort_definition_id}")
+    #     self.logger.info(f"Variables - {variable_objects}")
+
+    #     payload = {"variables": [asdict(i) for i in variable_objects]}
+    #     self.logger.info(f"Payload - {payload}")
+    #     self.logger.info(f"HARE population {hare_population}")
+
+    #     # Fetch concept_id for HARE population
+    #     hare_concept_id = self.get_concept_id_by_population(
+    #         source_id, hare_population, _di
+    #     )
+    #     if hare_concept_id is None:
+    #         raise ValueError(
+    #             f"Concept ID for HARE population '{hare_population}' not found."
+    #         )
+
+    #     breakdown_concept_id = CohortServiceClient.strip_concept_prefix(
+    #         prefixed_breakdown_concept_id
+    #     )[0]
+    #     self.logger.info(f"Breakdown concept ID - {breakdown_concept_id}")
+
+    #     # Define the base filter structure
+    #     hare_filter = {
+    #         "variables": [
+    #             {
+    #                 "variable_type": "concept",
+    #                 "concept_id": breakdown_concept_id,
+    #                 "values": [hare_concept_id],
+    #             }
+    #         ]
+    #     }
+
+    #     desc_stats_response = []
+
+    #     # Iterate through each variable and construct API calls dynamically
+    #     for entry in payload["variables"]:
+    #         var_type = entry["variable_type"]
+
+    #         if var_type == "concept":
+    #             c_id = entry["concept_id"]
+    #         else:
+    #             self.logger.info(f"Returning empty JSON for variable_type: {var_type}")
+    #             return {}  # Return an empty JSON for non-concept types
+
+    #         request_payload = json.dumps(hare_filter)
+
+    #         self.logger.info(f"Fetching descriptive stats for concept_id {c_id}")
+
+    #         # Make API request using the correct endpoint format
+    #         req = _di.post(
+    #             f"{self.service_url}/cohort-stats/by-source-id/{source_id}/by-cohort-definition-id/{cohort_definition_id}/by-concept-id/{c_id}",
+    #             data=request_payload,
+    #             headers=self.get_header(),
+    #             stream=True,
+    #             timeout=(6.05, len(payload["variables"]) * 180),
+    #         )
+
+    #         req.raise_for_status()
+    #         response = req.json()
+    #         desc_stats_response.append(response)
+
+    #     return desc_stats_response
 
     @staticmethod
     def strip_concept_prefix(prefixed_concept_ids: Union[List[str], str]) -> List[int]:

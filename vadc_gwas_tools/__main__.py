@@ -13,6 +13,7 @@ from vadc_gwas_tools.subcommands import (
     FilterSegments,
     GetCohortAttritionTable,
     GetCohortPheno,
+    GetDescriptiveStatistics,
     GetGwasMetadata,
     GetPheWebPlotJson,
     ProcessInputVariables,
@@ -52,6 +53,7 @@ def main(args=None, extra_subparser=None) -> None:
     GetGwasMetadata.add(subparsers=subparsers)
     SplitFilenameByChr.add(subparsers=subparsers)
     GetCohortAttritionTable.add(subparsers=subparsers)
+    GetDescriptiveStatistics.add(subparsers=subparsers)
     GetPheWebPlotJson.add(subparsers=subparsers)
 
     if extra_subparser:
